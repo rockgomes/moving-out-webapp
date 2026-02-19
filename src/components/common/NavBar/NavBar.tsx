@@ -17,9 +17,10 @@ import type { Profile } from '@/types'
 
 interface NavBarProps {
   user?: Profile | null
+  unreadCount?: number
 }
 
-export function NavBar({ user }: NavBarProps) {
+export function NavBar({ user, unreadCount = 0 }: NavBarProps) {
   const router = useRouter()
   const supabase = createClient()
 
@@ -89,7 +90,14 @@ export function NavBar({ user }: NavBarProps) {
                     <Link href="/my-listings">My Listings</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/messages">Messages</Link>
+                    <Link href="/messages" className="flex items-center justify-between">
+                      Messages
+                      {unreadCount > 0 && (
+                        <span className="ml-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-primary-foreground">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/saved">Saved Items</Link>
