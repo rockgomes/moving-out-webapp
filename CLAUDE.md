@@ -1,6 +1,7 @@
 # MoveOutSale — Claude Context
 
 Peer-to-peer marketplace for people moving to sell items locally.
+GitHub: https://github.com/rockgomes/moving-out-webapp
 Design file: `movingout.pen` (Pencil design tool — use MCP tools to read/edit it).
 
 ---

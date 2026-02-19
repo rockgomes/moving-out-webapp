@@ -215,7 +215,7 @@ RESEND_API_KEY=
 
 | Resource | URL |
 |---|---|
-| GitHub Repo | — |
+| GitHub Repo | https://github.com/rockgomes/moving-out-webapp |
 | Vercel Project | — |
 | Supabase Project | — |
 | Facebook App Dashboard | — |
