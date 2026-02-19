@@ -35,6 +35,7 @@ describe('NavBar', () => {
       city: null,
       state: null,
       zip_code: null,
+      country: null,
       created_at: new Date().toISOString(),
     }
     render(<NavBar user={mockUser} />)

@@ -26,7 +26,7 @@ export async function GET(request: Request) {
           .single()
 
         // New user or missing location → send to onboarding
-        if (!profile?.zip_code) {
+        if (!profile?.city) {
           return NextResponse.redirect(`${origin}/onboarding`)
         }
       }

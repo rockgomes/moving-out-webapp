@@ -6,15 +6,15 @@ import { z } from 'zod'
 
 const locationSchema = z.object({
   city: z.string().min(1, 'City is required'),
-  state: z.string().length(2, 'Use the 2-letter state abbreviation'),
-  zip_code: z.string().regex(/^\d{5}$/, 'Enter a valid 5-digit ZIP code'),
+  country: z.string().min(1, 'Country is required'),
+  state: z.string().optional(),
+  zip_code: z.string().optional(),
 })
 
 export type LocationFormState = {
   errors?: {
     city?: string[]
-    state?: string[]
-    zip_code?: string[]
+    country?: string[]
     _form?: string[]
   }
 }
@@ -25,8 +25,9 @@ export async function saveLocation(
 ): Promise<LocationFormState> {
   const raw = {
     city: formData.get('city') as string,
-    state: (formData.get('state') as string)?.toUpperCase(),
-    zip_code: formData.get('zip_code') as string,
+    country: formData.get('country') as string,
+    state: (formData.get('state') as string) || undefined,
+    zip_code: (formData.get('zip_code') as string) || undefined,
   }
 
   const parsed = locationSchema.safeParse(raw)
@@ -45,8 +46,9 @@ export async function saveLocation(
     .from('profiles')
     .update({
       city: parsed.data.city,
-      state: parsed.data.state,
-      zip_code: parsed.data.zip_code,
+      state: parsed.data.state ?? null,
+      zip_code: parsed.data.zip_code ?? null,
+      country: parsed.data.country,
     })
     .eq('id', user.id)
 
