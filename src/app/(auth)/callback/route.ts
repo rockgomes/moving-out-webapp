@@ -25,8 +25,8 @@ export async function GET(request: Request) {
           .eq('id', user.id)
           .single()
 
-        // New user or missing location → send to onboarding
-        if (!profile?.city) {
+        // New user or missing country → send to onboarding
+        if (!profile?.country) {
           return NextResponse.redirect(`${origin}/onboarding`)
         }
       }

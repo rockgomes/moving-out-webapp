@@ -3,14 +3,9 @@
 import { useActionState, useState, useTransition } from 'react'
 import { LocateFixed, Loader2, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { saveLocation, type LocationFormState } from './actions'
 
-// Countries that have states/provinces worth collecting
-const STATES_COUNTRIES = new Set(['US', 'CA', 'AU', 'MX', 'BR', 'IN'])
-
-// Curated country list (ISO 3166-1 alpha-2 + display name)
 const COUNTRIES = [
   { code: 'EE', name: 'Estonia' },
   { code: 'US', name: 'United States' },
@@ -45,9 +40,8 @@ const COUNTRIES = [
 ]
 
 interface GeoResult {
-  city: string
-  country: string  // ISO code
-  countryName: string
+  country: string
+  city?: string
   state?: string
   zip?: string
 }
@@ -60,12 +54,11 @@ async function reverseGeocode(lat: number, lon: number): Promise<GeoResult | nul
     )
     const data = await res.json()
     const a = data.address ?? {}
-    const city = a.city ?? a.town ?? a.village ?? a.hamlet ?? ''
-    const country = (a.country_code as string ?? '').toUpperCase()
-    const countryName = a.country ?? country
+    const country = a.country ?? ''
+    const city = a.city ?? a.town ?? a.village ?? undefined
     const state = a.state ?? a.county ?? undefined
     const zip = a.postcode ?? undefined
-    return { city, country, countryName, state, zip }
+    return { country, city, state, zip }
   } catch {
     return null
   }
@@ -79,7 +72,6 @@ export function LocationForm() {
   const [showManual, setShowManual] = useState(false)
   const [prefilled, setPrefilled] = useState<GeoResult | null>(null)
   const [geoError, setGeoError] = useState<string | null>(null)
-  const [selectedCountry, setSelectedCountry] = useState('')
 
   function handleUseLocation() {
     if (!navigator.geolocation) {
@@ -91,17 +83,16 @@ export function LocationForm() {
         navigator.geolocation.getCurrentPosition(
           async (pos) => {
             const result = await reverseGeocode(pos.coords.latitude, pos.coords.longitude)
-            if (result) {
+            if (result?.country) {
               setPrefilled(result)
-              setSelectedCountry(result.country)
             } else {
-              setGeoError('Could not detect location. Please enter it manually.')
+              setGeoError('Could not detect location. Please select your country.')
               setShowManual(true)
             }
             resolve()
           },
           () => {
-            setGeoError('Location access denied. Please enter it manually.')
+            setGeoError('Location access denied. Please select your country.')
             setShowManual(true)
             resolve()
           },
@@ -111,23 +102,19 @@ export function LocationForm() {
     })
   }
 
-  // After geolocation fills in, submit automatically via the form
-  // (user sees a confirmation state before submitting)
-  const showStateField = STATES_COUNTRIES.has(selectedCountry)
-
-  // ── Geolocation confirmation view ────────────────────────────────────
+  // ── Geolocation confirmation ──────────────────────────────────────────
   if (prefilled && !showManual) {
     return (
       <form action={action} className="flex flex-col gap-4">
-        <input type="hidden" name="city" value={prefilled.city} />
-        <input type="hidden" name="country" value={prefilled.countryName} />
+        <input type="hidden" name="country" value={prefilled.country} />
+        {prefilled.city && <input type="hidden" name="city" value={prefilled.city} />}
         {prefilled.state && <input type="hidden" name="state" value={prefilled.state} />}
         {prefilled.zip && <input type="hidden" name="zip_code" value={prefilled.zip} />}
 
         <div className="rounded-xl border bg-muted/40 p-4 text-sm">
           <p className="font-medium text-foreground">Detected location</p>
           <p className="mt-0.5 text-muted-foreground">
-            {[prefilled.city, prefilled.state, prefilled.countryName].filter(Boolean).join(', ')}
+            {[prefilled.city, prefilled.country].filter(Boolean).join(', ')}
           </p>
         </div>
 
@@ -136,20 +123,22 @@ export function LocationForm() {
         )}
 
         <Button type="submit" size="lg" className="w-full" disabled={isPending}>
-          {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : 'Yes, that\'s right →'}
+          {isPending
+            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</>
+            : 'Yes, that\'s right →'}
         </Button>
         <button
           type="button"
           className="text-sm text-muted-foreground underline hover:text-foreground"
           onClick={() => { setPrefilled(null); setShowManual(true) }}
         >
-          No, let me enter it manually
+          No, let me pick my country
         </button>
       </form>
     )
   }
 
-  // ── Manual entry view ─────────────────────────────────────────────────
+  // ── Manual: country only ──────────────────────────────────────────────
   if (showManual) {
     return (
       <form action={action} className="flex flex-col gap-4">
@@ -159,19 +148,17 @@ export function LocationForm() {
           </div>
         )}
 
-        {/* Country */}
         <div className="flex flex-col gap-1.5">
-          <Label htmlFor="country">Country</Label>
+          <Label htmlFor="country">Your country</Label>
           <div className="relative">
             <select
               id="country"
               name="country"
-              value={selectedCountry}
-              onChange={(e) => setSelectedCountry(e.target.value)}
+              defaultValue=""
               className="w-full appearance-none rounded-md border border-input bg-background px-3 py-2 pr-8 text-sm shadow-xs focus:outline-none focus:ring-2 focus:ring-ring"
               aria-invalid={!!state.errors?.country}
             >
-              <option value="">Select country…</option>
+              <option value="" disabled>Select country…</option>
               {COUNTRIES.map((c) => (
                 <option key={c.code} value={c.name}>{c.name}</option>
               ))}
@@ -183,49 +170,18 @@ export function LocationForm() {
           )}
         </div>
 
-        {/* City */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="city">City</Label>
-          <Input
-            id="city"
-            name="city"
-            placeholder="Tallinn"
-            autoComplete="address-level2"
-            aria-invalid={!!state.errors?.city}
-          />
-          {state.errors?.city && (
-            <p className="text-xs text-destructive">{state.errors.city[0]}</p>
-          )}
-        </div>
-
-        {/* Postal code (optional) */}
-        <div className="flex flex-col gap-1.5">
-          <Label htmlFor="zip_code">
-            {showStateField ? 'ZIP / Postal Code' : 'Postal Code'}{' '}
-            <span className="text-muted-foreground">(optional)</span>
-          </Label>
-          <Input
-            id="zip_code"
-            name="zip_code"
-            placeholder={showStateField ? '10001' : '10115'}
-            inputMode="text"
-            autoComplete="postal-code"
-          />
-        </div>
-
-        <Button type="submit" size="lg" className="mt-1 w-full" disabled={isPending}>
-          {isPending ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : 'Find items near me'}
+        <Button type="submit" size="lg" className="w-full" disabled={isPending}>
+          {isPending
+            ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</>
+            : 'Continue →'}
         </Button>
       </form>
     )
   }
 
-  // ── Default view: geolocation CTA ────────────────────────────────────
+  // ── Default: geolocation CTA ──────────────────────────────────────────
   return (
     <div className="flex flex-col gap-4">
-      {geoError && (
-        <p className="text-sm text-destructive">{geoError}</p>
-      )}
       <Button
         size="lg"
         className="w-full"
@@ -233,7 +189,7 @@ export function LocationForm() {
         onClick={handleUseLocation}
       >
         {geoLoading
-          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Detecting location…</>
+          ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Detecting…</>
           : <><LocateFixed className="mr-2 h-4 w-4" /> Use my location</>}
       </Button>
       <button
@@ -241,7 +197,7 @@ export function LocationForm() {
         className="text-sm text-muted-foreground underline hover:text-foreground"
         onClick={() => setShowManual(true)}
       >
-        Enter location manually
+        Select country manually
       </button>
     </div>
   )

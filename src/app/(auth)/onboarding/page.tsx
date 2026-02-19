@@ -18,11 +18,11 @@ export default async function OnboardingPage() {
   // Guard: skip onboarding if location already set
   const { data: profile } = await supabase
     .from('profiles')
-    .select('city, country')
+    .select('country')
     .eq('id', user.id)
     .single()
 
-  if (profile?.city) redirect('/')
+  if (profile?.country) redirect('/')
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-muted/30 px-4">
