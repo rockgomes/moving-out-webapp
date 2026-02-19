@@ -1,0 +1,84 @@
+import Image from 'next/image'
+import Link from 'next/link'
+import { Package } from 'lucide-react'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import type { ListingWithSeller } from '@/types'
+
+interface ListingCardProps {
+  listing: ListingWithSeller
+}
+
+export function ListingCard({ listing }: ListingCardProps) {
+  const photo = listing.listing_photos
+    ?.slice()
+    .sort((a, b) => a.display_order - b.display_order)[0]
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const photoUrl = photo
+    ? `${supabaseUrl}/storage/v1/object/public/listing-photos/${photo.storage_path}`
+    : null
+
+  const initials = listing.profiles?.display_name
+    ?.split(' ')
+    .map((n) => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  return (
+    <Link
+      href={`/listings/${listing.id}`}
+      className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md"
+    >
+      {/* Photo */}
+      <div className="relative h-[190px] w-full shrink-0 bg-muted">
+        {photoUrl ? (
+          <Image
+            src={photoUrl}
+            alt={listing.title}
+            fill
+            className="object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 320px"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center">
+            <Package className="h-12 w-12 text-muted-foreground/20" />
+          </div>
+        )}
+      </div>
+
+      {/* Body */}
+      <div className="flex flex-col gap-2.5 p-[18px]">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="line-clamp-1 text-[15px] font-semibold leading-snug text-foreground">
+            {listing.title}
+          </h3>
+          <span className="shrink-0 text-base font-bold text-primary">
+            ${Number(listing.price).toFixed(0)}
+          </span>
+        </div>
+
+        {listing.description && (
+          <p className="line-clamp-2 text-[13px] leading-[1.4] text-muted-foreground">
+            {listing.description}
+          </p>
+        )}
+
+        <div className="flex items-center gap-2">
+          <Avatar className="h-6 w-6">
+            <AvatarImage
+              src={listing.profiles?.avatar_url ?? undefined}
+              alt={listing.profiles?.display_name ?? 'Seller'}
+            />
+            <AvatarFallback className="bg-primary/10 text-[10px] font-semibold text-primary">
+              {initials ?? 'U'}
+            </AvatarFallback>
+          </Avatar>
+          <span className="text-xs font-medium text-muted-foreground">
+            {listing.profiles?.display_name ?? 'Anonymous'}
+          </span>
+        </div>
+      </div>
+    </Link>
+  )
+}

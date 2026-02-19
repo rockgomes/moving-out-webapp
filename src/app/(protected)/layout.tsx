@@ -14,9 +14,15 @@ export default async function ProtectedLayout({
     redirect('/login')
   }
 
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single()
+
   return (
     <>
-      <NavBar />
+      <NavBar user={profile} />
       <main>{children}</main>
     </>
   )
