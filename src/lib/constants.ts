@@ -1,17 +1,25 @@
 export const CATEGORIES = [
   { slug: 'all', label: 'All Items', icon: 'LayoutGrid' },
-  { slug: 'furniture', label: 'Furniture', icon: 'Sofa' },
-  { slug: 'appliances', label: 'Appliances', icon: 'Plug' },
-  { slug: 'decor-plants', label: 'Decor & Plants', icon: 'Flower2' },
-  { slug: 'electronics', label: 'Electronics', icon: 'Monitor' },
-  { slug: 'clothing', label: 'Clothing', icon: 'Shirt' },
+  { slug: 'living-room', label: 'Living Room', icon: 'Sofa' },
+  { slug: 'bedroom', label: 'Bedroom', icon: 'BedDouble' },
+  { slug: 'kitchen', label: 'Kitchen', icon: 'UtensilsCrossed' },
+  { slug: 'bathroom', label: 'Bathroom', icon: 'Bath' },
+  { slug: 'office', label: 'Office', icon: 'Monitor' },
+  { slug: 'decor', label: 'Decor & Plants', icon: 'Flower2' },
   { slug: 'misc', label: 'Misc / Boxes', icon: 'Package' },
 ] as const
 
 export type CategorySlug = (typeof CATEGORIES)[number]['slug']
 
-// Featured categories shown as quick-filter pills on the homepage
-export const FEATURED_PILL_SLUGS: CategorySlug[] = ['furniture', 'appliances', 'decor-plants']
+// Type-based groups used as quick-filter pills on the homepage.
+// Each group maps to one or more room-based category slugs.
+export const ITEM_GROUPS = [
+  { slug: 'furniture', label: 'Furniture', categories: ['living-room', 'bedroom'] as CategorySlug[] },
+  { slug: 'appliances', label: 'Appliances', categories: ['kitchen', 'bathroom'] as CategorySlug[] },
+  { slug: 'decor-plants', label: 'Decor & Plants', categories: ['decor'] as CategorySlug[] },
+] as const
+
+export type ItemGroupSlug = (typeof ITEM_GROUPS)[number]['slug']
 
 export const LISTING_CONDITIONS = [
   { value: 'new', label: 'New' },

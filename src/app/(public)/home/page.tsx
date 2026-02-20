@@ -1,14 +1,14 @@
 import Link from 'next/link'
 import {
   LayoutGrid, Sofa, BedDouble, UtensilsCrossed,
-  Bath, Monitor, Package, ArrowRight,
+  Bath, Monitor, Flower2, Package, ArrowRight,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { Button } from '@/components/ui/button'
 import { HomeFilterBar } from './HomeFilterBar'
-import { CATEGORIES, ITEMS_PER_PAGE, type CategorySlug } from '@/lib/constants'
+import { CATEGORIES, ITEM_GROUPS, ITEMS_PER_PAGE, type CategorySlug } from '@/lib/constants'
 import type { ListingWithSeller } from '@/types'
 
 export const metadata: Metadata = {
@@ -17,16 +17,17 @@ export const metadata: Metadata = {
 }
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  LayoutGrid, Sofa, BedDouble, UtensilsCrossed, Bath, Monitor, Package,
+  LayoutGrid, Sofa, BedDouble, UtensilsCrossed, Bath, Monitor, Flower2, Package,
 }
 
 interface HomePageProps {
-  searchParams: Promise<{ category?: string; page?: string; free?: string; sort?: string }>
+  searchParams: Promise<{ category?: string; group?: string; page?: string; free?: string; sort?: string }>
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const { category, page, free, sort } = await searchParams
+  const { category, group, page, free, sort } = await searchParams
   const activeCategory = (category ?? 'all') as CategorySlug
+  const activeGroup = group ?? ''
   const isFree = free === '1'
   const activeSort = sort ?? 'newest'
   const currentPage = Math.max(1, Number(page ?? 1))
@@ -54,7 +55,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .order(sortColumn, { ascending: sortAscending })
     .range(offset, offset + ITEMS_PER_PAGE - 1)
 
-  if (activeCategory !== 'all') query = query.eq('category', activeCategory)
+  // Sidebar category filter (room-based) and pill group filter (type-based) are mutually exclusive.
+  // If a group is set, map it to its room categories.
+  if (activeGroup) {
+    const groupDef = ITEM_GROUPS.find((g) => g.slug === activeGroup)
+    if (groupDef) query = query.in('category', groupDef.categories as string[])
+  } else if (activeCategory !== 'all') {
+    query = query.eq('category', activeCategory)
+  }
   if (isFree) query = query.eq('price', 0)
 
   const [{ data: listings, count }, { data: savedRows }] = await Promise.all([
@@ -68,7 +76,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
   function pageUrl(p: number) {
     const params = new URLSearchParams()
-    if (activeCategory !== 'all') params.set('category', activeCategory)
+    if (activeGroup) params.set('group', activeGroup)
+    else if (activeCategory !== 'all') params.set('category', activeCategory)
     if (isFree) params.set('free', '1')
     if (activeSort !== 'newest') params.set('sort', activeSort)
     if (p > 1) params.set('page', String(p))
@@ -89,7 +98,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
           {CATEGORIES.map((cat) => {
             const Icon = CATEGORY_ICONS[cat.icon]
-            const isActive = activeCategory === cat.slug && !isFree
+            // Sidebar is active only when no group pill is selected and this category matches
+            const isActive = !activeGroup && activeCategory === cat.slug && !isFree
             return (
               <Link
                 key={cat.slug}
@@ -143,7 +153,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
           {/* Filter bar */}
           <HomeFilterBar
-            activeCategory={activeCategory}
+            activeGroup={activeGroup}
             isFree={isFree}
             sort={activeSort}
           />
@@ -171,7 +181,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <p className="mt-1 text-sm text-muted-foreground">
                 {isFree
                   ? 'No free items right now. Check back soon!'
-                  : activeCategory !== 'all'
+                  : activeGroup || activeCategory !== 'all'
                     ? 'No items in this category. Try a different one.'
                     : 'Be the first to list something in your area!'}
               </p>
