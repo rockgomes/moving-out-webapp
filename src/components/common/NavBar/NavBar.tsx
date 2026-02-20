@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname } from 'next/navigation'
 import type { Profile } from '@/types'
 
 interface NavBarProps {
@@ -20,8 +20,14 @@ interface NavBarProps {
   unreadCount?: number
 }
 
+const NAV_LINKS = [
+  { href: '/home', label: 'Browse' },
+  { href: '/browse?type=sales', label: 'Moving Sales' },
+]
+
 export function NavBar({ user, unreadCount = 0 }: NavBarProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const supabase = createClient()
 
   async function handleSignOut() {
@@ -37,32 +43,40 @@ export function NavBar({ user, unreadCount = 0 }: NavBarProps) {
     .toUpperCase()
     .slice(0, 2)
 
+  function isActive(href: string) {
+    const path = href.split('?')[0]
+    return pathname === path || pathname.startsWith(path + '/')
+  }
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-white/95 backdrop-blur supports-[backdrop-filter]:bg-white/60">
       <div className="mx-auto flex h-16 max-w-[1440px] items-center justify-between px-8">
-        {/* Logo */}
-        <Link href="/" className="flex items-center gap-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <Package className="h-4 w-4 text-primary-foreground" />
-          </div>
-          <span className="text-lg font-bold text-foreground">MoveOutSale</span>
-        </Link>
 
-        {/* Center nav links */}
-        <nav className="hidden items-center gap-6 md:flex">
-          <Link
-            href="/browse"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Browse
+        {/* Left: logo + nav links */}
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+              <Package className="h-4 w-4 text-primary-foreground" />
+            </div>
+            <span className="text-lg font-bold text-foreground">MoveOutSale</span>
           </Link>
-          <Link
-            href="/browse?type=sales"
-            className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Moving Sales
-          </Link>
-        </nav>
+
+          <nav className="hidden items-center gap-6 md:flex">
+            {NAV_LINKS.map(({ href, label }) => (
+              <Link
+                key={href}
+                href={href}
+                className={`text-sm transition-colors ${
+                  isActive(href)
+                    ? 'font-semibold text-primary'
+                    : 'font-medium text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                {label}
+              </Link>
+            ))}
+          </nav>
+        </div>
 
         {/* Right actions */}
         <div className="flex items-center gap-3">
