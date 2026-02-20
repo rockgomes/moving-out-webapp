@@ -186,7 +186,7 @@
   }
 }
 
-/* Outside any layer — unlayered CSS wins the cascade over all @layer rules */
+/* Cursor — !important to beat any Tailwind layer or unlayered reset */
 a[href], button, [role="button"], select, label {
-  cursor: pointer;
+  cursor: pointer !important;
 }

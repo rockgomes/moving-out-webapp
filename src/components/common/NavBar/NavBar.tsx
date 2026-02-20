@@ -54,7 +54,7 @@ export function NavBar({ user, unreadCount = 0 }: NavBarProps) {
 
         {/* Left: logo + nav links */}
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2">
+          <Link href="/" className="flex cursor-pointer items-center gap-2">
             <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
               <Package className="h-4 w-4 text-primary-foreground" />
             </div>
@@ -66,7 +66,7 @@ export function NavBar({ user, unreadCount = 0 }: NavBarProps) {
               <Link
                 key={href}
                 href={href}
-                className={`text-sm transition-colors ${
+                className={`cursor-pointer text-sm transition-colors ${
                   isActive(href)
                     ? 'font-semibold text-primary'
                     : 'font-medium text-muted-foreground hover:text-foreground'

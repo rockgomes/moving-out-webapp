@@ -180,7 +180,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
             <Link
               key={cat.slug}
               href={categoryUrl(cat.slug)}
-              className={`flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex cursor-pointer items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors ${
                 isActive
                   ? 'bg-primary/10 text-primary'
                   : 'text-foreground hover:bg-muted'
