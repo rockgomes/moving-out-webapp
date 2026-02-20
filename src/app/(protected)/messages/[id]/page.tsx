@@ -18,7 +18,7 @@ export default async function MessagesThreadPage({ params }: MessagesThreadPageP
     .from('conversations')
     .select(`
       id, buyer_id, seller_id,
-      listings ( id, title, price, listing_photos ( storage_path, display_order ) ),
+      listings ( id, title, price, country, listing_photos ( storage_path, display_order ) ),
       buyer_profile:profiles!buyer_id ( id, display_name, avatar_url ),
       seller_profile:profiles!seller_id ( id, display_name, avatar_url )
     `)
@@ -32,7 +32,7 @@ export default async function MessagesThreadPage({ params }: MessagesThreadPageP
     id: string
     buyer_id: string
     seller_id: string
-    listings: { id: string; title: string; price: number; listing_photos: { storage_path: string; display_order: number }[] } | null
+    listings: { id: string; title: string; price: number; country: string | null; listing_photos: { storage_path: string; display_order: number }[] } | null
     buyer_profile: { id: string; display_name: string | null; avatar_url: string | null } | null
     seller_profile: { id: string; display_name: string | null; avatar_url: string | null } | null
   }
@@ -51,6 +51,7 @@ export default async function MessagesThreadPage({ params }: MessagesThreadPageP
     id: conv.listings?.id ?? '',
     title: conv.listings?.title ?? 'Item',
     price: conv.listings?.price ?? 0,
+    country: conv.listings?.country ?? null,
     photoUrl: photo
       ? `${supabaseUrl}/storage/v1/object/public/listing-photos/${photo.storage_path}`
       : null,

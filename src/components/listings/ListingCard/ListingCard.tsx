@@ -4,6 +4,7 @@ import { Package } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { ListingWithSeller } from '@/types'
 import { SaveButton } from '../SaveButton'
+import { formatPrice } from '@/lib/currency'
 
 interface ListingCardProps {
   listing: ListingWithSeller
@@ -64,7 +65,7 @@ export function ListingCard({ listing, isSaved }: ListingCardProps) {
             {listing.title}
           </h3>
           <span className="shrink-0 text-base font-bold text-primary">
-            {Number(listing.price) === 0 ? 'Free' : `$${Number(listing.price).toFixed(0)}`}
+            {formatPrice(Number(listing.price), listing.country)}
           </span>
         </div>
 

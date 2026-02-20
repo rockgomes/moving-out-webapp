@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { MessageSellerButton } from './MessageSellerButton'
 import { CATEGORIES } from '@/lib/constants'
+import { formatPrice } from '@/lib/currency'
 import type { ListingWithSeller } from '@/types'
 
 const CONDITION_LABELS: Record<string, string> = {
@@ -148,7 +149,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
 
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-3xl font-bold text-primary">
-              {Number(listing.price) === 0 ? 'Free' : `$${Number(listing.price).toFixed(0)}`}
+              {formatPrice(Number(listing.price), listing.country)}
             </span>
             <Badge variant={CONDITION_VARIANTS[listing.condition] ?? 'secondary'}>
               {CONDITION_LABELS[listing.condition] ?? listing.condition}
