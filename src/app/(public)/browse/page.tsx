@@ -121,7 +121,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
     .select(`
       *,
       listing_photos ( id, storage_path, display_order ),
-      profiles ( id, display_name, avatar_url )
+      profiles!listings_seller_id_fkey ( id, display_name, avatar_url )
     `, { count: 'exact' })
     .eq('status', 'active')
     .order('created_at', { ascending: false })

@@ -87,7 +87,7 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
   // Fetch paginated listings (filtered by category if selected)
   let listingQuery = supabase
     .from('listings')
-    .select('*, listing_photos ( id, storage_path, display_order ), profiles ( id, display_name, avatar_url )', { count: 'exact' })
+    .select('*, listing_photos ( id, storage_path, display_order ), profiles!listings_seller_id_fkey ( id, display_name, avatar_url )', { count: 'exact' })
     .eq('moving_sale_id', id)
     .eq('status', 'active')
     .order('created_at', { ascending: false })
