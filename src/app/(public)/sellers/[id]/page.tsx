@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { CATEGORIES, LISTING_TAGS, ITEMS_PER_PAGE } from '@/lib/constants'
+import { ScrollablePills } from '@/components/common/ScrollablePills'
 import type { ListingWithSeller } from '@/types'
 
 interface SellerPageProps {
@@ -177,66 +178,60 @@ export default async function SellerPage({ params, searchParams }: SellerPagePro
 
       {/* Room filter pills — only shown when seller has items in multiple categories */}
       {categoryList.length > 1 && (
-        <div className="relative mb-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <ScrollablePills className="mb-3">
+          <Link
+            href={categoryUrl('all')}
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              activeCategory === 'all'
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-background text-foreground hover:bg-muted'
+            }`}
+          >
+            All Rooms <span className="opacity-60">({totalItems})</span>
+          </Link>
+          {categoryList.map(({ slug, label, count: cnt }) => (
             <Link
-              href={categoryUrl('all')}
+              key={slug}
+              href={categoryUrl(slug)}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                activeCategory === 'all'
+                activeCategory === slug
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-border bg-background text-foreground hover:bg-muted'
               }`}
             >
-              All Rooms <span className="opacity-60">({totalItems})</span>
+              {label} <span className="opacity-60">({cnt})</span>
             </Link>
-            {categoryList.map(({ slug, label, count: cnt }) => (
-              <Link
-                key={slug}
-                href={categoryUrl(slug)}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  activeCategory === slug
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-background text-foreground hover:bg-muted'
-                }`}
-              >
-                {label} <span className="opacity-60">({cnt})</span>
-              </Link>
-            ))}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white to-transparent" />
-        </div>
+          ))}
+        </ScrollablePills>
       )}
 
       {/* Tag filter pills — derived from seller's actual listing tags */}
       {availableTags.length > 0 && (
-        <div className="relative mb-6">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+        <ScrollablePills className="mb-6">
+          <Link
+            href={tagUrl('')}
+            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              !activeTag
+                ? 'border-primary bg-primary text-primary-foreground'
+                : 'border-border bg-background text-foreground hover:bg-muted'
+            }`}
+          >
+            All Items
+          </Link>
+          {availableTags.map(({ slug, label }) => (
             <Link
-              href={tagUrl('')}
+              key={slug}
+              href={tagUrl(slug)}
               className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                !activeTag
+                activeTag === slug
                   ? 'border-primary bg-primary text-primary-foreground'
                   : 'border-border bg-background text-foreground hover:bg-muted'
               }`}
             >
-              All Items
+              {label}
             </Link>
-            {availableTags.map(({ slug, label }) => (
-              <Link
-                key={slug}
-                href={tagUrl(slug)}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  activeTag === slug
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-background text-foreground hover:bg-muted'
-                }`}
-              >
-                {label}
-              </Link>
-            ))}
-          </div>
-          <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white to-transparent" />
-        </div>
+          ))}
+        </ScrollablePills>
       )}
 
       {/* Listing grid */}

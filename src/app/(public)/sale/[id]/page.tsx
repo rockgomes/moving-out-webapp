@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CATEGORIES, LISTING_TAGS, ITEMS_PER_PAGE } from '@/lib/constants'
+import { ScrollablePills } from '@/components/common/ScrollablePills'
 import type { ListingWithSeller } from '@/types'
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -222,34 +223,31 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
         {/* Tag pills + count */}
         {availableTags.length > 0 && (
           <div className="flex items-center justify-between gap-3">
-            <div className="relative min-w-0 flex-1">
-              <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+            <ScrollablePills className="min-w-0 flex-1">
+              <Link
+                href={tagUrl('')}
+                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  !activeTag
+                    ? 'border-primary bg-primary text-primary-foreground'
+                    : 'border-border bg-background text-foreground hover:bg-muted'
+                }`}
+              >
+                All
+              </Link>
+              {availableTags.map(({ slug, label }) => (
                 <Link
-                  href={tagUrl('')}
+                  key={slug}
+                  href={tagUrl(slug)}
                   className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                    !activeTag
+                    activeTag === slug
                       ? 'border-primary bg-primary text-primary-foreground'
                       : 'border-border bg-background text-foreground hover:bg-muted'
                   }`}
                 >
-                  All
+                  {label}
                 </Link>
-                {availableTags.map(({ slug, label }) => (
-                  <Link
-                    key={slug}
-                    href={tagUrl(slug)}
-                    className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                      activeTag === slug
-                        ? 'border-primary bg-primary text-primary-foreground'
-                        : 'border-border bg-background text-foreground hover:bg-muted'
-                    }`}
-                  >
-                    {label}
-                  </Link>
-                ))}
-              </div>
-              <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white to-transparent" />
-            </div>
+              ))}
+            </ScrollablePills>
             <span className="shrink-0 text-sm text-muted-foreground">
               {count ?? 0} item{count !== 1 ? 's' : ''}
             </span>

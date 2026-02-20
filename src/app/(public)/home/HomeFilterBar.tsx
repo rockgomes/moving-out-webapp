@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import { ScrollablePills } from '@/components/common/ScrollablePills'
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest Listed' },
@@ -34,49 +35,46 @@ export function HomeFilterBar({ activeTag, availableTags, isFree, sort, category
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="relative min-w-0 flex-1">
-        <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-0.5">
-          {/* All Items — active when no tag and not free */}
+      <ScrollablePills className="min-w-0 flex-1">
+        {/* All Items — active when no tag and not free */}
+        <Link
+          href={buildTagUrl('', false, sort, category)}
+          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            noneActive
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border bg-white text-foreground hover:bg-muted'
+          }`}
+        >
+          All Items
+        </Link>
+
+        {/* Free Stuff */}
+        <Link
+          href={buildTagUrl('', true, sort, category)}
+          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            isFree
+              ? 'border-primary bg-primary text-primary-foreground'
+              : 'border-border bg-white text-foreground hover:bg-muted'
+          }`}
+        >
+          Free Stuff 🎁
+        </Link>
+
+        {/* Dynamic tag pills — only tags present in the current context */}
+        {availableTags.map((tag) => (
           <Link
-            href={buildTagUrl('', false, sort, category)}
+            key={tag.slug}
+            href={buildTagUrl(tag.slug, false, sort, category)}
             className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              noneActive
+              activeTag === tag.slug && !isFree
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border bg-white text-foreground hover:bg-muted'
             }`}
           >
-            All Items
+            {tag.label}
           </Link>
-
-          {/* Free Stuff */}
-          <Link
-            href={buildTagUrl('', true, sort, category)}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              isFree
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border bg-white text-foreground hover:bg-muted'
-            }`}
-          >
-            Free Stuff 🎁
-          </Link>
-
-          {/* Dynamic tag pills — only tags present in the current context */}
-          {availableTags.map((tag) => (
-            <Link
-              key={tag.slug}
-              href={buildTagUrl(tag.slug, false, sort, category)}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                activeTag === tag.slug && !isFree
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-white text-foreground hover:bg-muted'
-              }`}
-            >
-              {tag.label}
-            </Link>
-          ))}
-        </div>
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-10 bg-linear-to-l from-white to-transparent" />
-      </div>
+        ))}
+      </ScrollablePills>
 
       <div className="flex shrink-0 items-center gap-1">
         <span className="text-xs text-muted-foreground">Sort by:</span>
