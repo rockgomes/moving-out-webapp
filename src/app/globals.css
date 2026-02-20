@@ -184,7 +184,9 @@
   body {
     @apply bg-background text-foreground;
   }
-  a[href], button, [role="button"], select, label {
-    @apply cursor-pointer;
-  }
+}
+
+/* Outside any layer — unlayered CSS wins the cascade over all @layer rules */
+a[href], button, [role="button"], select, label {
+  cursor: pointer;
 }

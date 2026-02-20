@@ -5,7 +5,6 @@ export const CATEGORIES = [
   { slug: 'kitchen', label: 'Kitchen', icon: 'UtensilsCrossed' },
   { slug: 'bathroom', label: 'Bathroom', icon: 'Bath' },
   { slug: 'office', label: 'Office', icon: 'Monitor' },
-  { slug: 'decor', label: 'Decor & Plants', icon: 'Flower2' },
   { slug: 'misc', label: 'Misc / Boxes', icon: 'Package' },
 ] as const
 
@@ -16,7 +15,7 @@ export type CategorySlug = (typeof CATEGORIES)[number]['slug']
 export const ITEM_GROUPS = [
   { slug: 'furniture', label: 'Furniture', categories: ['living-room', 'bedroom'] as CategorySlug[] },
   { slug: 'appliances', label: 'Appliances', categories: ['kitchen', 'bathroom'] as CategorySlug[] },
-  { slug: 'decor-plants', label: 'Decor & Plants', categories: ['decor'] as CategorySlug[] },
+  { slug: 'decor-plants', label: 'Decor & Plants', categories: ['misc'] as CategorySlug[] },
 ] as const
 
 export type ItemGroupSlug = (typeof ITEM_GROUPS)[number]['slug']
