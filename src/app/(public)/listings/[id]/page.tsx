@@ -5,6 +5,7 @@ import { MapPin, Clock, Share2, Flag, ChevronRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { MessageSellerButton } from './MessageSellerButton'
@@ -213,12 +214,12 @@ export default async function ListingPage({ params }: ListingPageProps) {
               isOwner={isOwner}
             />
             <div className="flex gap-2">
-              <button className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
+              <Button variant="outline" className="flex-1 gap-1.5 text-muted-foreground hover:text-foreground">
                 <Share2 className="h-4 w-4" /> Share
-              </button>
-              <button className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border py-2 text-sm font-medium text-muted-foreground hover:bg-muted">
+              </Button>
+              <Button variant="outline" className="flex-1 gap-1.5 text-muted-foreground hover:text-foreground">
                 <Flag className="h-4 w-4" /> Report
-              </button>
+              </Button>
             </div>
           </div>
         </div>
