@@ -2,8 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { ITEM_GROUPS } from '@/lib/constants'
-import type { ItemGroupSlug } from '@/lib/constants'
+import { ScrollablePills } from '@/components/common/ScrollablePills'
 
 const SORT_OPTIONS = [
   { value: 'newest', label: 'Newest Listed' },
@@ -13,30 +12,33 @@ const SORT_OPTIONS = [
 ]
 
 interface HomeFilterBarProps {
-  activeGroup: string   // active type-based pill ('furniture' | 'appliances' | 'decor-plants' | '')
+  activeTag: string
+  availableTags: { slug: string; label: string }[]
   isFree: boolean
   sort: string
+  category: string
 }
 
-function buildGroupUrl(group: string, isFree: boolean, sort: string) {
+function buildTagUrl(tag: string, isFree: boolean, sort: string, category: string) {
   const params = new URLSearchParams()
-  if (group) params.set('group', group)
+  if (category && category !== 'all') params.set('category', category)
+  if (tag) params.set('tag', tag)
   if (isFree) params.set('free', '1')
   if (sort && sort !== 'newest') params.set('sort', sort)
   const qs = params.toString()
   return `/home${qs ? `?${qs}` : ''}`
 }
 
-export function HomeFilterBar({ activeGroup, isFree, sort }: HomeFilterBarProps) {
+export function HomeFilterBar({ activeTag, availableTags, isFree, sort, category }: HomeFilterBarProps) {
   const router = useRouter()
-  const noneActive = !activeGroup && !isFree
+  const noneActive = !activeTag && !isFree
 
   return (
     <div className="flex items-center justify-between gap-3">
-      <div className="flex gap-2 overflow-x-auto pb-0.5">
-        {/* All Items — active when no group and not free */}
+      <ScrollablePills className="min-w-0 flex-1">
+        {/* All Items — active when no tag and not free */}
         <Link
-          href={buildGroupUrl('', false, sort)}
+          href={buildTagUrl('', false, sort, category)}
           className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
             noneActive
               ? 'border-primary bg-primary text-primary-foreground'
@@ -48,7 +50,7 @@ export function HomeFilterBar({ activeGroup, isFree, sort }: HomeFilterBarProps)
 
         {/* Free Stuff */}
         <Link
-          href={buildGroupUrl('', true, sort)}
+          href={buildTagUrl('', true, sort, category)}
           className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
             isFree
               ? 'border-primary bg-primary text-primary-foreground'
@@ -58,27 +60,27 @@ export function HomeFilterBar({ activeGroup, isFree, sort }: HomeFilterBarProps)
           Free Stuff 🎁
         </Link>
 
-        {/* Type-based group pills */}
-        {ITEM_GROUPS.map((group) => (
+        {/* Dynamic tag pills — only tags present in the current context */}
+        {availableTags.map((tag) => (
           <Link
-            key={group.slug}
-            href={buildGroupUrl(group.slug, false, sort)}
+            key={tag.slug}
+            href={buildTagUrl(tag.slug, false, sort, category)}
             className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              activeGroup === group.slug && !isFree
+              activeTag === tag.slug && !isFree
                 ? 'border-primary bg-primary text-primary-foreground'
                 : 'border-border bg-white text-foreground hover:bg-muted'
             }`}
           >
-            {group.label}
+            {tag.label}
           </Link>
         ))}
-      </div>
+      </ScrollablePills>
 
       <div className="flex shrink-0 items-center gap-1">
         <span className="text-xs text-muted-foreground">Sort by:</span>
         <select
           value={sort}
-          onChange={(e) => router.push(buildGroupUrl(activeGroup, isFree, e.target.value))}
+          onChange={(e) => router.push(buildTagUrl(activeTag, isFree, e.target.value, category))}
           className="cursor-pointer border-none bg-transparent text-xs font-semibold text-foreground outline-none"
         >
           {SORT_OPTIONS.map((opt) => (

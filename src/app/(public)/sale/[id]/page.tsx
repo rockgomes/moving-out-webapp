@@ -10,7 +10,8 @@ import { ListingCard } from '@/components/listings/ListingCard'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { CATEGORIES, ITEMS_PER_PAGE } from '@/lib/constants'
+import { CATEGORIES, LISTING_TAGS, ITEMS_PER_PAGE } from '@/lib/constants'
+import { ScrollablePills } from '@/components/common/ScrollablePills'
 import type { ListingWithSeller } from '@/types'
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
@@ -19,7 +20,7 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 
 interface SalePageProps {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ category?: string; page?: string }>
+  searchParams: Promise<{ category?: string; tag?: string; page?: string }>
 }
 
 export async function generateMetadata({ params }: SalePageProps): Promise<Metadata> {
@@ -40,9 +41,10 @@ export async function generateMetadata({ params }: SalePageProps): Promise<Metad
 
 export default async function SalePage({ params, searchParams }: SalePageProps) {
   const { id } = await params
-  const { category, page } = await searchParams
+  const { category, tag, page } = await searchParams
 
   const activeCategory = category ?? 'all'
+  const activeTag = tag ?? ''
   const currentPage = Math.max(1, Number(page ?? 1))
   const offset = (currentPage - 1) * ITEMS_PER_PAGE
 
@@ -62,14 +64,14 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
     id: string; display_name: string | null; avatar_url: string | null; city: string | null; country: string | null
   }
 
-  // Fetch all active listings for category breakdown (for featured bundles)
+  // Fetch all active listings for category breakdown + tag inventory
   const { data: allListings } = await supabase
     .from('listings')
-    .select('id, category, listing_photos ( storage_path, display_order )')
+    .select('id, category, tags, listing_photos ( storage_path, display_order )')
     .eq('moving_sale_id', id)
     .eq('status', 'active')
 
-  // Build category counts for featured bundles
+  // Build category counts for sidebar
   const categoryCounts: Record<string, number> = {}
   for (const l of allListings ?? []) {
     categoryCounts[l.category] = (categoryCounts[l.category] ?? 0) + 1
@@ -84,6 +86,12 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
       count,
     }))
 
+  // Derive available tag pills from actual listing data
+  const usedTagSlugs = new Set(
+    (allListings ?? []).flatMap((l) => (l as unknown as { tags: string[] }).tags ?? [])
+  )
+  const availableTags = LISTING_TAGS.filter((t) => usedTagSlugs.has(t.slug))
+
   // Fetch paginated listings (filtered by category if selected)
   let listingQuery = supabase
     .from('listings')
@@ -94,6 +102,7 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
     .range(offset, offset + ITEMS_PER_PAGE - 1)
 
   if (activeCategory !== 'all') listingQuery = listingQuery.eq('category', activeCategory)
+  if (activeTag) listingQuery = listingQuery.contains('tags', [activeTag])
 
   const [{ data: listings, count }, { data: savedRows }] = await Promise.all([
     listingQuery,
@@ -110,15 +119,28 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
     ?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   function categoryUrl(slug: string) {
-    return `/sale/${id}${slug !== 'all' ? `?category=${slug}` : ''}`
+    const qs = new URLSearchParams()
+    if (slug !== 'all') qs.set('category', slug)
+    if (activeTag) qs.set('tag', activeTag)
+    const s = qs.toString()
+    return `/sale/${id}${s ? `?${s}` : ''}`
+  }
+
+  function tagUrl(slug: string) {
+    const qs = new URLSearchParams()
+    if (activeCategory !== 'all') qs.set('category', activeCategory)
+    if (slug) qs.set('tag', slug)
+    const s = qs.toString()
+    return `/sale/${id}${s ? `?${s}` : ''}`
   }
 
   function pageUrl(p: number) {
-    const params = new URLSearchParams()
-    if (activeCategory !== 'all') params.set('category', activeCategory)
-    if (p > 1) params.set('page', String(p))
-    const qs = params.toString()
-    return `/sale/${id}${qs ? `?${qs}` : ''}`
+    const qs = new URLSearchParams()
+    if (activeCategory !== 'all') qs.set('category', activeCategory)
+    if (activeTag) qs.set('tag', activeTag)
+    if (p > 1) qs.set('page', String(p))
+    const s = qs.toString()
+    return `/sale/${id}${s ? `?${s}` : ''}`
   }
 
   return (
@@ -198,67 +220,39 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
           </div>
         </div>
 
-        {/* Featured category bundles */}
-        {featuredCategories.length > 0 && activeCategory === 'all' && (
-          <div className="flex flex-col gap-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Featured Bundles
-            </h2>
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-              {featuredCategories.map(({ slug, label, icon, count: cnt }) => {
-                const Icon = CATEGORY_ICONS[icon] ?? Package
-                return (
-                  <Link
-                    key={slug}
-                    href={categoryUrl(slug)}
-                    className="flex items-center gap-4 rounded-xl border bg-white p-4 transition-shadow hover:shadow-md"
-                  >
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-                      <Icon className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="font-semibold text-sm truncate">{label}</p>
-                      <p className="text-xs text-muted-foreground">{cnt} item{cnt !== 1 ? 's' : ''}</p>
-                    </div>
-                    <ChevronRight className="ml-auto h-4 w-4 shrink-0 text-muted-foreground" />
-                  </Link>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Filter pills + count */}
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            <Link
-              href={categoryUrl('all')}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                activeCategory === 'all'
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-foreground hover:bg-muted'
-              }`}
-            >
-              All Items
-            </Link>
-            {featuredCategories.map(({ slug, label }) => (
+        {/* Tag pills + count */}
+        {availableTags.length > 0 && (
+          <div className="flex items-center justify-between gap-3">
+            <ScrollablePills className="min-w-0 flex-1">
               <Link
-                key={slug}
-                href={categoryUrl(slug)}
+                href={tagUrl('')}
                 className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                  activeCategory === slug
+                  !activeTag
                     ? 'border-primary bg-primary text-primary-foreground'
                     : 'border-border bg-background text-foreground hover:bg-muted'
                 }`}
               >
-                {label}
+                All
               </Link>
-            ))}
+              {availableTags.map(({ slug, label }) => (
+                <Link
+                  key={slug}
+                  href={tagUrl(slug)}
+                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                    activeTag === slug
+                      ? 'border-primary bg-primary text-primary-foreground'
+                      : 'border-border bg-background text-foreground hover:bg-muted'
+                  }`}
+                >
+                  {label}
+                </Link>
+              ))}
+            </ScrollablePills>
+            <span className="shrink-0 text-sm text-muted-foreground">
+              {count ?? 0} item{count !== 1 ? 's' : ''}
+            </span>
           </div>
-          <span className="shrink-0 text-sm text-muted-foreground">
-            {count ?? 0} item{count !== 1 ? 's' : ''}
-          </span>
-        </div>
+        )}
 
         {/* Listing grid */}
         {listings && listings.length > 0 ? (

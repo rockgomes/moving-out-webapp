@@ -10,15 +10,24 @@ export const CATEGORIES = [
 
 export type CategorySlug = (typeof CATEGORIES)[number]['slug']
 
-// Type-based groups used as quick-filter pills on the homepage.
-// Each group maps to one or more room-based category slugs.
-export const ITEM_GROUPS = [
-  { slug: 'furniture', label: 'Furniture', categories: ['living-room', 'bedroom'] as CategorySlug[] },
-  { slug: 'appliances', label: 'Appliances', categories: ['kitchen', 'bathroom'] as CategorySlug[] },
-  { slug: 'decor-plants', label: 'Decor & Plants', categories: ['misc'] as CategorySlug[] },
+// Predefined tags sellers can apply to listings.
+// Pills on listing grids are derived from the tags actually present in the data.
+export const LISTING_TAGS = [
+  { slug: 'furniture',   label: 'Furniture' },
+  { slug: 'appliances',  label: 'Appliances' },
+  { slug: 'electronics', label: 'Electronics' },
+  { slug: 'clothing',    label: 'Clothing' },
+  { slug: 'books',       label: 'Books & Media' },
+  { slug: 'plants',      label: 'Plants & Garden' },
+  { slug: 'baby-kids',   label: 'Baby & Kids' },
+  { slug: 'sports',      label: 'Sports & Fitness' },
+  { slug: 'tools',       label: 'Tools & DIY' },
+  { slug: 'decor',       label: 'Decor & Art' },
+  { slug: 'vintage',     label: 'Vintage' },
+  { slug: 'toys',        label: 'Toys & Games' },
 ] as const
 
-export type ItemGroupSlug = (typeof ITEM_GROUPS)[number]['slug']
+export type ListingTagSlug = (typeof LISTING_TAGS)[number]['slug']
 
 export const LISTING_CONDITIONS = [
   { value: 'new', label: 'New' },
