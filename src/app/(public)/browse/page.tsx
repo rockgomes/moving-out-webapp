@@ -39,6 +39,7 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   const offset = (currentPage - 1) * ITEMS_PER_PAGE
 
   const supabase = await createServerClient()
+  const { data: { user } } = await supabase.auth.getUser()
 
   let query = supabase
     .from('listings')
@@ -57,7 +58,13 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
   if (max) query = query.lte('price', Number(max))
   if (q) query = query.or(`title.ilike.%${q}%,description.ilike.%${q}%`)
 
-  const { data: listings, count } = await query
+  const [{ data: listings, count }, { data: savedRows }] = await Promise.all([
+    query,
+    user
+      ? supabase.from('saved_listings').select('listing_id').eq('user_id', user.id)
+      : Promise.resolve({ data: null }),
+  ])
+  const savedIds = new Set(savedRows?.map((r) => r.listing_id) ?? [])
   const totalPages = Math.ceil((count ?? 0) / ITEMS_PER_PAGE)
 
   function pageUrl(p: number) {
@@ -157,7 +164,11 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
         {listings && listings.length > 0 ? (
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {(listings as unknown as ListingWithSeller[]).map((listing) => (
-              <ListingCard key={listing.id} listing={listing} />
+              <ListingCard
+                key={listing.id}
+                listing={listing}
+                isSaved={user ? savedIds.has(listing.id) : undefined}
+              />
             ))}
           </div>
         ) : (

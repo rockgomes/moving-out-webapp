@@ -3,12 +3,14 @@ import Link from 'next/link'
 import { Package } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { ListingWithSeller } from '@/types'
+import { SaveButton } from '../SaveButton'
 
 interface ListingCardProps {
   listing: ListingWithSeller
+  isSaved?: boolean // undefined = user not logged in, don't show heart
 }
 
-export function ListingCard({ listing }: ListingCardProps) {
+export function ListingCard({ listing, isSaved }: ListingCardProps) {
   const photo = listing.listing_photos
     ?.slice()
     .sort((a, b) => a.display_order - b.display_order)[0]
@@ -26,10 +28,9 @@ export function ListingCard({ listing }: ListingCardProps) {
     .slice(0, 2)
 
   return (
-    <Link
-      href={`/listings/${listing.id}`}
-      className="group flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md"
-    >
+    <div className="group relative flex flex-col overflow-hidden rounded-xl border bg-white shadow-sm transition-shadow hover:shadow-md">
+      <Link href={`/listings/${listing.id}`} className="absolute inset-0 z-0" aria-label={listing.title} />
+
       {/* Photo */}
       <div className="relative h-[190px] w-full shrink-0 bg-muted">
         {photoUrl ? (
@@ -45,16 +46,25 @@ export function ListingCard({ listing }: ListingCardProps) {
             <Package className="h-12 w-12 text-muted-foreground/20" />
           </div>
         )}
+
+        {/* Save button — only shown to logged-in users */}
+        {isSaved !== undefined && (
+          <SaveButton
+            listingId={listing.id}
+            isSaved={isSaved}
+            className="absolute right-2.5 top-2.5 z-10"
+          />
+        )}
       </div>
 
       {/* Body */}
-      <div className="flex flex-col gap-2.5 p-[18px]">
+      <div className="relative z-0 flex flex-col gap-2.5 p-[18px]">
         <div className="flex items-start justify-between gap-2">
           <h3 className="line-clamp-1 text-[15px] font-semibold leading-snug text-foreground">
             {listing.title}
           </h3>
           <span className="shrink-0 text-base font-bold text-primary">
-            ${Number(listing.price).toFixed(0)}
+            {Number(listing.price) === 0 ? 'Free' : `$${Number(listing.price).toFixed(0)}`}
           </span>
         </div>
 
@@ -79,6 +89,6 @@ export function ListingCard({ listing }: ListingCardProps) {
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   )
 }
