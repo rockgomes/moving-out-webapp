@@ -7,6 +7,7 @@ import { Send, Loader2, Package } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/currency'
 import type { Message } from '@/types'
 
 interface OtherPerson {
@@ -19,6 +20,7 @@ interface ListingSnippet {
   id: string
   title: string
   price: number
+  country: string | null
   photoUrl: string | null
 }
 
@@ -167,7 +169,7 @@ export function ChatThread({
           <div className="hidden sm:block">
             <p className="max-w-[140px] truncate text-xs font-medium text-foreground">{listing.title}</p>
             <p className="text-xs text-primary font-semibold">
-              {listing.price === 0 ? 'Free' : `$${listing.price}`}
+              {formatPrice(listing.price, listing.country)}
             </p>
           </div>
         </Link>

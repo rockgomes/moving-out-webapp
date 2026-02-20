@@ -97,8 +97,8 @@ export function BrowseFilters({ category, q, condition, min, max }: BrowseFilter
             type="number"
             min={0}
             defaultValue={min}
-            placeholder="Min $"
-            className="h-8 w-20 text-xs"
+            placeholder="Min price"
+            className="h-8 w-28 text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <span className="text-xs text-muted-foreground">–</span>
           <Input
@@ -106,8 +106,8 @@ export function BrowseFilters({ category, q, condition, min, max }: BrowseFilter
             type="number"
             min={0}
             defaultValue={max}
-            placeholder="Max $"
-            className="h-8 w-20 text-xs"
+            placeholder="Max price"
+            className="h-8 w-28 text-xs [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
           />
           <Button type="submit" variant="outline" size="sm" className="h-8 text-xs">
             Go

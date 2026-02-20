@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
+import { formatPrice } from '@/lib/currency'
 import { CATEGORIES, LISTING_CONDITIONS } from '@/lib/constants'
 import type { Profile } from '@/types'
 
@@ -354,7 +355,7 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
                     {form.title || 'Your Item Title'}
                   </p>
                   <span className="text-sm font-bold text-primary">
-                    ${Number(previewPrice).toFixed(0)}
+                    {formatPrice(Number(previewPrice), profile.country)}
                   </span>
                 </div>
                 <p className="line-clamp-2 text-xs text-muted-foreground">

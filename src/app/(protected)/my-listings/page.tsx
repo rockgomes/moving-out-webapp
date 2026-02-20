@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { Plus, Package, Truck } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
+import { formatPrice } from '@/lib/currency'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { StatusButton } from './StatusButton'
@@ -122,7 +123,7 @@ export default async function MyListingsPage() {
                     </Badge>
                   </div>
                   <p className="mt-0.5 text-sm font-semibold text-primary">
-                    {Number(listing.price) === 0 ? 'Free' : `$${Number(listing.price).toFixed(0)}`}
+                    {formatPrice(Number(listing.price), listing.country)}
                   </p>
                   <p className="text-xs text-muted-foreground">
                     Listed {new Date(listing.created_at).toLocaleDateString('en', { month: 'short', day: 'numeric', year: 'numeric' })}
