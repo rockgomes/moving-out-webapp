@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import {
-  LayoutGrid, Sofa, BedDouble, UtensilsCrossed,
-  Bath, Monitor, Package, Truck,
+  LayoutGrid, Sofa, Plug, Flower2,
+  Monitor, Shirt, Package, Truck,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
@@ -18,7 +18,7 @@ export const metadata: Metadata = {
 }
 
 const CATEGORY_ICONS: Record<string, React.ElementType> = {
-  LayoutGrid, Sofa, BedDouble, UtensilsCrossed, Bath, Monitor, Package,
+  LayoutGrid, Sofa, Plug, Flower2, Monitor, Shirt, Package,
 }
 
 interface BrowsePageProps {

@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { CATEGORIES } from '@/lib/constants'
+import { CATEGORIES, FEATURED_PILL_SLUGS } from '@/lib/constants'
 import type { CategorySlug } from '@/lib/constants'
 
 const SORT_OPTIONS = [
@@ -53,7 +53,7 @@ export function HomeFilterBar({ activeCategory, isFree, sort }: HomeFilterBarPro
         >
           Free Stuff 🎁
         </Link>
-        {CATEGORIES.filter((c) => c.slug !== 'all').map((cat) => (
+        {CATEGORIES.filter((c) => FEATURED_PILL_SLUGS.includes(c.slug as CategorySlug)).map((cat) => (
           <Link
             key={cat.slug}
             href={buildUrl(cat.slug, false, sort)}
