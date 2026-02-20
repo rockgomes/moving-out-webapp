@@ -20,7 +20,7 @@ export default async function SavedPage() {
       listings (
         *,
         listing_photos ( id, storage_path, display_order ),
-        profiles ( id, display_name, avatar_url )
+        profiles!listings_seller_id_fkey ( id, display_name, avatar_url )
       )
     `)
     .eq('user_id', user.id)

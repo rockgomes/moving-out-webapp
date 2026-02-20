@@ -51,7 +51,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     .select(`
       *,
       listing_photos ( id, storage_path, display_order ),
-      profiles ( id, display_name, avatar_url, city, state, created_at )
+      profiles!listings_seller_id_fkey ( id, display_name, avatar_url, city, state, created_at )
     `)
     .eq('id', id)
     .single()
@@ -68,7 +68,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     .select(`
       *,
       listing_photos ( id, storage_path, display_order ),
-      profiles ( id, display_name, avatar_url )
+      profiles!listings_seller_id_fkey ( id, display_name, avatar_url )
     `)
     .eq('seller_id', listing.seller_id)
     .eq('status', 'active')
