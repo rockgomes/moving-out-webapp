@@ -7,6 +7,7 @@ import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { Button } from '@/components/ui/button'
+import { HomeFilterBar } from './HomeFilterBar'
 import { CATEGORIES, ITEMS_PER_PAGE, type CategorySlug } from '@/lib/constants'
 import type { ListingWithSeller } from '@/types'
 
@@ -20,17 +21,27 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 }
 
 interface HomePageProps {
-  searchParams: Promise<{ category?: string; page?: string }>
+  searchParams: Promise<{ category?: string; page?: string; free?: string; sort?: string }>
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const { category, page } = await searchParams
+  const { category, page, free, sort } = await searchParams
   const activeCategory = (category ?? 'all') as CategorySlug
+  const isFree = free === '1'
+  const activeSort = sort ?? 'newest'
   const currentPage = Math.max(1, Number(page ?? 1))
   const offset = (currentPage - 1) * ITEMS_PER_PAGE
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Build sort order
+  let sortColumn: string
+  let sortAscending: boolean
+  if (activeSort === 'oldest') { sortColumn = 'created_at'; sortAscending = true }
+  else if (activeSort === 'price_asc') { sortColumn = 'price'; sortAscending = true }
+  else if (activeSort === 'price_desc') { sortColumn = 'price'; sortAscending = false }
+  else { sortColumn = 'created_at'; sortAscending = false } // newest (default)
 
   let query = supabase
     .from('listings')
@@ -40,12 +51,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       profiles!listings_seller_id_fkey ( id, display_name, avatar_url )
     `, { count: 'exact' })
     .eq('status', 'active')
-    .order('created_at', { ascending: false })
+    .order(sortColumn, { ascending: sortAscending })
     .range(offset, offset + ITEMS_PER_PAGE - 1)
 
-  if (activeCategory !== 'all') {
-    query = query.eq('category', activeCategory)
-  }
+  if (activeCategory !== 'all') query = query.eq('category', activeCategory)
+  if (isFree) query = query.eq('price', 0)
 
   const [{ data: listings, count }, { data: savedRows }] = await Promise.all([
     query,
@@ -55,6 +65,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   ])
   const savedIds = new Set(savedRows?.map((r) => r.listing_id) ?? [])
   const totalPages = Math.ceil((count ?? 0) / ITEMS_PER_PAGE)
+
+  function pageUrl(p: number) {
+    const params = new URLSearchParams()
+    if (activeCategory !== 'all') params.set('category', activeCategory)
+    if (isFree) params.set('free', '1')
+    if (activeSort !== 'newest') params.set('sort', activeSort)
+    if (p > 1) params.set('page', String(p))
+    const qs = params.toString()
+    return `/home${qs ? `?${qs}` : ''}`
+  }
 
   return (
     <div className="flex min-h-screen flex-col bg-background">
@@ -69,7 +89,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
           {CATEGORIES.map((cat) => {
             const Icon = CATEGORY_ICONS[cat.icon]
-            const isActive = activeCategory === cat.slug
+            const isActive = activeCategory === cat.slug && !isFree
             return (
               <Link
                 key={cat.slug}
@@ -115,33 +135,23 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                   <Link href="/sell">Start Selling</Link>
                 </Button>
                 <Button asChild variant="outline" size="default">
-                  <Link href="/home">Browse Free Items</Link>
+                  <Link href="/home?free=1">Browse Free Items</Link>
                 </Button>
               </div>
             </div>
           </div>
 
-          {/* Filter bar — mobile pills + item count */}
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
-              {CATEGORIES.map((cat) => (
-                <Link
-                  key={cat.slug}
-                  href={cat.slug === 'all' ? '/home' : `/home?category=${cat.slug}`}
-                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-                    activeCategory === cat.slug
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-white text-foreground hover:bg-muted'
-                  }`}
-                >
-                  {cat.label}
-                </Link>
-              ))}
-            </div>
-            <p className="shrink-0 text-sm text-muted-foreground">
-              {count ?? 0} item{count !== 1 ? 's' : ''} found
-            </p>
-          </div>
+          {/* Filter bar */}
+          <HomeFilterBar
+            activeCategory={activeCategory}
+            isFree={isFree}
+            sort={activeSort}
+          />
+
+          {/* Item count */}
+          <p className="-mt-3 text-sm text-muted-foreground">
+            {count ?? 0} item{count !== 1 ? 's' : ''} found
+          </p>
 
           {/* Listing grid */}
           {listings && listings.length > 0 ? (
@@ -159,9 +169,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <Package className="mb-4 h-12 w-12 text-muted-foreground/30" />
               <p className="text-lg font-semibold text-foreground">No listings yet</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {activeCategory !== 'all'
-                  ? 'No items in this category. Try a different one.'
-                  : 'Be the first to list something in your area!'}
+                {isFree
+                  ? 'No free items right now. Check back soon!'
+                  : activeCategory !== 'all'
+                    ? 'No items in this category. Try a different one.'
+                    : 'Be the first to list something in your area!'}
               </p>
               <Button asChild className="mt-4">
                 <Link href="/sell">List an Item</Link>
@@ -174,11 +186,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <div className="flex items-center justify-center gap-2 pt-4">
               {currentPage > 1 && (
                 <Button asChild variant="outline" size="sm">
-                  <Link
-                    href={`/home?${activeCategory !== 'all' ? `category=${activeCategory}&` : ''}page=${currentPage - 1}`}
-                  >
-                    Previous
-                  </Link>
+                  <Link href={pageUrl(currentPage - 1)}>Previous</Link>
                 </Button>
               )}
               <span className="text-sm text-muted-foreground">
@@ -186,11 +194,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </span>
               {currentPage < totalPages && (
                 <Button asChild variant="outline" size="sm">
-                  <Link
-                    href={`/home?${activeCategory !== 'all' ? `category=${activeCategory}&` : ''}page=${currentPage + 1}`}
-                  >
-                    Next
-                  </Link>
+                  <Link href={pageUrl(currentPage + 1)}>Next</Link>
                 </Button>
               )}
             </div>
