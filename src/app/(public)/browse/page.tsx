@@ -1,11 +1,12 @@
 import Link from 'next/link'
 import {
   LayoutGrid, Sofa, BedDouble, UtensilsCrossed,
-  Bath, Monitor, Package,
+  Bath, Monitor, Package, Truck,
 } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ListingCard } from '@/components/listings/ListingCard'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
 import { CATEGORIES, ITEMS_PER_PAGE, type CategorySlug } from '@/lib/constants'
 import type { ListingWithSeller } from '@/types'
@@ -28,11 +29,12 @@ interface BrowsePageProps {
     min?: string
     max?: string
     page?: string
+    type?: string
   }>
 }
 
 export default async function BrowsePage({ searchParams }: BrowsePageProps) {
-  const { category, q, condition, min, max, page } = await searchParams
+  const { category, q, condition, min, max, page, type } = await searchParams
 
   const activeCategory = (category ?? 'all') as CategorySlug
   const currentPage = Math.max(1, Number(page ?? 1))
@@ -40,6 +42,79 @@ export default async function BrowsePage({ searchParams }: BrowsePageProps) {
 
   const supabase = await createServerClient()
   const { data: { user } } = await supabase.auth.getUser()
+
+  // Moving Sales view
+  if (type === 'sales') {
+    const { data: sales } = await supabase
+      .from('moving_sales')
+      .select('*, profiles ( id, display_name, avatar_url, city, country ), listings ( id )')
+      .order('created_at', { ascending: false })
+      .limit(24)
+
+    const salesWithCount = (sales ?? []).map((s) => ({
+      ...s,
+      itemCount: (s.listings as unknown as { id: string }[])?.length ?? 0,
+      seller: s.profiles as unknown as { id: string; display_name: string | null; avatar_url: string | null; city: string | null; country: string | null },
+    })).filter((s) => s.itemCount > 0)
+
+    return (
+      <div className="mx-auto max-w-[1440px] px-5 py-8 lg:px-8">
+        <div className="mb-6 flex items-center gap-3">
+          <Truck className="h-5 w-5 text-primary" />
+          <h1 className="text-xl font-bold tracking-tight">Moving Sales</h1>
+          <span className="text-sm text-muted-foreground">({salesWithCount.length})</span>
+          <Link href="/browse" className="ml-auto text-sm text-muted-foreground hover:text-foreground">
+            Browse individual items →
+          </Link>
+        </div>
+        {salesWithCount.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-center">
+            <Truck className="mb-4 h-12 w-12 text-muted-foreground/20" />
+            <p className="text-lg font-semibold">No moving sales yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Be the first to start a moving sale!
+            </p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {salesWithCount.map((sale) => {
+              const initials = sale.seller.display_name
+                ?.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)
+              return (
+                <Link
+                  key={sale.id}
+                  href={`/sale/${sale.id}`}
+                  className="flex flex-col gap-4 rounded-xl border bg-white p-5 transition-shadow hover:shadow-md"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-10 w-10">
+                      <AvatarImage src={sale.seller.avatar_url ?? undefined} />
+                      <AvatarFallback className="bg-primary/10 text-xs font-semibold text-primary">
+                        {initials ?? 'U'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm truncate">{sale.title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {sale.seller.display_name ?? 'Anonymous'}
+                        {sale.seller.city ? ` · ${sale.seller.city}` : ''}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-muted-foreground">
+                      {sale.itemCount} item{sale.itemCount !== 1 ? 's' : ''}
+                    </span>
+                    <span className="text-xs font-medium text-primary">View Sale →</span>
+                  </div>
+                </Link>
+              )
+            })}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   let query = supabase
     .from('listings')

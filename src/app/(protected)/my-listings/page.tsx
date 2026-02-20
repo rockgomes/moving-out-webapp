@@ -1,10 +1,12 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Plus, Package } from 'lucide-react'
+import { Plus, Package, Truck } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { StatusButton } from './StatusButton'
+import { createMovingSale } from './actions'
 
 export const metadata: Metadata = { title: 'My Listings | MoveOutSale' }
 
@@ -20,22 +22,65 @@ export default async function MyListingsPage() {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  const { data: listings } = await supabase
-    .from('listings')
-    .select('*, listing_photos ( storage_path, display_order )')
-    .eq('seller_id', user.id)
-    .order('created_at', { ascending: false })
+  const [{ data: listings }, { data: movingSale }] = await Promise.all([
+    supabase
+      .from('listings')
+      .select('*, listing_photos ( storage_path, display_order )')
+      .eq('seller_id', user.id)
+      .order('created_at', { ascending: false }),
+    supabase
+      .from('moving_sales')
+      .select('id, title')
+      .eq('seller_id', user.id)
+      .maybeSingle(),
+  ])
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">My Listings</h1>
-        <Button asChild size="sm">
-          <Link href="/sell"><Plus className="mr-1.5 h-4 w-4" />New Listing</Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button asChild size="sm">
+            <Link href="/sell"><Plus className="mr-1.5 h-4 w-4" />New Listing</Link>
+          </Button>
+        </div>
       </div>
+
+      {/* Moving Sale banner */}
+      {movingSale ? (
+        <div className="mb-6 flex items-center justify-between rounded-xl border border-primary/20 bg-primary/5 px-5 py-4">
+          <div className="flex items-center gap-3">
+            <Truck className="h-5 w-5 text-primary" />
+            <div>
+              <p className="text-sm font-semibold text-foreground">{movingSale.title}</p>
+              <p className="text-xs text-muted-foreground">Your moving sale is live</p>
+            </div>
+          </div>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/sale/${movingSale.id}`}>View Sale</Link>
+          </Button>
+        </div>
+      ) : (
+        <form action={createMovingSale} className="mb-6">
+          <div className="flex items-center justify-between rounded-xl border border-dashed px-5 py-4">
+            <div className="flex items-center gap-3">
+              <Truck className="h-5 w-5 text-muted-foreground" />
+              <div>
+                <p className="text-sm font-semibold text-foreground">Bundle your listings</p>
+                <p className="text-xs text-muted-foreground">
+                  Create a Moving Sale to group all your items in one shareable page
+                </p>
+              </div>
+            </div>
+            <Button type="submit" variant="outline" size="sm">
+              Start Moving Sale
+            </Button>
+          </div>
+        </form>
+      )}
 
       {!listings || listings.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-20 text-center">
@@ -99,6 +144,3 @@ export default async function MyListingsPage() {
     </div>
   )
 }
-
-// Inline client component for status transitions
-import { StatusButton } from './StatusButton'

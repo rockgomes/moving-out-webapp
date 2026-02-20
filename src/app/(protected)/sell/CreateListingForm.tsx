@@ -23,6 +23,7 @@ import type { Profile } from '@/types'
 
 interface CreateListingFormProps {
   profile: Profile
+  movingSaleId: string | null
 }
 
 interface FormState {
@@ -37,7 +38,7 @@ interface FormState {
 
 const MAX_PHOTOS = 4
 
-export function CreateListingForm({ profile }: CreateListingFormProps) {
+export function CreateListingForm({ profile, movingSaleId }: CreateListingFormProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -105,6 +106,7 @@ export function CreateListingForm({ profile }: CreateListingFormProps) {
         .from('listings')
         .insert({
           seller_id: user.id,
+          moving_sale_id: movingSaleId,
           title: form.title.trim(),
           description: form.description.trim() || null,
           price: form.isFree ? 0 : Number(form.price),

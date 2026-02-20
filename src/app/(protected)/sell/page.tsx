@@ -13,11 +13,10 @@ export default async function SellPage() {
   // middleware already handles the redirect, but guard here for TS
   if (!user) return null
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single()
+  const [{ data: profile }, { data: movingSale }] = await Promise.all([
+    supabase.from('profiles').select('*').eq('id', user.id).single(),
+    supabase.from('moving_sales').select('id').eq('seller_id', user.id).maybeSingle(),
+  ])
 
   if (!profile) return null
 
@@ -29,7 +28,7 @@ export default async function SellPage() {
           Add photos, set your price, and publish to your neighbors.
         </p>
       </div>
-      <CreateListingForm profile={profile} />
+      <CreateListingForm profile={profile} movingSaleId={movingSale?.id ?? null} />
     </div>
   )
 }
