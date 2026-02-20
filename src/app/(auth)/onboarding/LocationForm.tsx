@@ -54,7 +54,7 @@ async function reverseGeocode(lat: number, lon: number): Promise<GeoResult | nul
     )
     const data = await res.json()
     const a = data.address ?? {}
-    const country = a.country ?? ''
+    const country = (a.country_code ?? '').toUpperCase()
     const city = a.city ?? a.town ?? a.village ?? undefined
     const state = a.state ?? a.county ?? undefined
     const zip = a.postcode ?? undefined
@@ -160,7 +160,7 @@ export function LocationForm() {
             >
               <option value="" disabled>Select country…</option>
               {COUNTRIES.map((c) => (
-                <option key={c.code} value={c.name}>{c.name}</option>
+                <option key={c.code} value={c.code}>{c.name}</option>
               ))}
             </select>
             <ChevronDown className="pointer-events-none absolute right-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
