@@ -8,7 +8,7 @@ import { createServerClient } from '@/lib/supabase/server'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { Button } from '@/components/ui/button'
 import { HomeFilterBar } from './HomeFilterBar'
-import { CATEGORIES, ITEM_GROUPS, ITEMS_PER_PAGE, type CategorySlug } from '@/lib/constants'
+import { CATEGORIES, LISTING_TAGS, ITEMS_PER_PAGE, type CategorySlug } from '@/lib/constants'
 import type { ListingWithSeller } from '@/types'
 
 export const metadata: Metadata = {
@@ -21,13 +21,13 @@ const CATEGORY_ICONS: Record<string, React.ElementType> = {
 }
 
 interface HomePageProps {
-  searchParams: Promise<{ category?: string; group?: string; page?: string; free?: string; sort?: string }>
+  searchParams: Promise<{ category?: string; tag?: string; page?: string; free?: string; sort?: string }>
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
-  const { category, group, page, free, sort } = await searchParams
+  const { category, tag, page, free, sort } = await searchParams
   const activeCategory = (category ?? 'all') as CategorySlug
-  const activeGroup = group ?? ''
+  const activeTag = tag ?? ''
   const isFree = free === '1'
   const activeSort = sort ?? 'newest'
   const currentPage = Math.max(1, Number(page ?? 1))
@@ -55,29 +55,36 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     .order(sortColumn, { ascending: sortAscending })
     .range(offset, offset + ITEMS_PER_PAGE - 1)
 
-  // Sidebar category filter (room-based) and pill group filter (type-based) are mutually exclusive.
-  // If a group is set, map it to its room categories.
-  if (activeGroup) {
-    const groupDef = ITEM_GROUPS.find((g) => g.slug === activeGroup)
-    if (groupDef) query = query.in('category', groupDef.categories as string[])
-  } else if (activeCategory !== 'all') {
-    query = query.eq('category', activeCategory)
-  }
+  // Sidebar (category) and tag pills are combinable — both can be active simultaneously.
+  if (activeCategory !== 'all') query = query.eq('category', activeCategory)
+  if (activeTag) query = query.contains('tags', [activeTag])
   if (isFree) query = query.eq('price', 0)
 
-  const [{ data: listings, count }, { data: savedRows }] = await Promise.all([
+  // Tag inventory: find which tags actually exist in the current category context
+  // (no pagination — lightweight select of just the tags column)
+  let tagInventoryQuery = supabase
+    .from('listings')
+    .select('tags')
+    .eq('status', 'active')
+  if (activeCategory !== 'all') tagInventoryQuery = tagInventoryQuery.eq('category', activeCategory)
+
+  const [{ data: listings, count }, { data: savedRows }, { data: tagRows }] = await Promise.all([
     query,
     user
       ? supabase.from('saved_listings').select('listing_id').eq('user_id', user.id)
       : Promise.resolve({ data: null }),
+    tagInventoryQuery,
   ])
+
+  const usedTagSlugs = new Set(tagRows?.flatMap((r) => r.tags ?? []) ?? [])
+  const availableTags = LISTING_TAGS.filter((t) => usedTagSlugs.has(t.slug))
   const savedIds = new Set(savedRows?.map((r) => r.listing_id) ?? [])
   const totalPages = Math.ceil((count ?? 0) / ITEMS_PER_PAGE)
 
   function pageUrl(p: number) {
     const params = new URLSearchParams()
-    if (activeGroup) params.set('group', activeGroup)
-    else if (activeCategory !== 'all') params.set('category', activeCategory)
+    if (activeCategory !== 'all') params.set('category', activeCategory)
+    if (activeTag) params.set('tag', activeTag)
     if (isFree) params.set('free', '1')
     if (activeSort !== 'newest') params.set('sort', activeSort)
     if (p > 1) params.set('page', String(p))
@@ -98,8 +105,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
           {CATEGORIES.map((cat) => {
             const Icon = CATEGORY_ICONS[cat.icon]
-            // Sidebar is active only when no group pill is selected and this category matches
-            const isActive = !activeGroup && activeCategory === cat.slug && !isFree
+            // Sidebar is active based on category selection (independent of tag pills)
+            const isActive = activeCategory === cat.slug && !isFree
             return (
               <Link
                 key={cat.slug}
@@ -153,9 +160,11 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
           {/* Filter bar */}
           <HomeFilterBar
-            activeGroup={activeGroup}
+            activeTag={activeTag}
+            availableTags={availableTags}
             isFree={isFree}
             sort={activeSort}
+            category={activeCategory}
           />
 
           {/* Item count */}
@@ -181,7 +190,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <p className="mt-1 text-sm text-muted-foreground">
                 {isFree
                   ? 'No free items right now. Check back soon!'
-                  : activeGroup || activeCategory !== 'all'
+                  : activeTag || activeCategory !== 'all'
                     ? 'No items in this category. Try a different one.'
                     : 'Be the first to list something in your area!'}
               </p>
