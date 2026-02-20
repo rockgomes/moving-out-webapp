@@ -19,7 +19,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/currency'
-import { CATEGORIES, LISTING_CONDITIONS } from '@/lib/constants'
+import { CATEGORIES, LISTING_CONDITIONS, LISTING_TAGS } from '@/lib/constants'
 import type { Profile } from '@/types'
 
 interface CreateListingFormProps {
@@ -35,6 +35,7 @@ interface FormState {
   isNegotiable: boolean
   condition: string
   category: string
+  tags: string[]
 }
 
 const MAX_PHOTOS = 4
@@ -53,6 +54,7 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
     isNegotiable: false,
     condition: '',
     category: '',
+    tags: [],
   })
   const [errors, setErrors] = useState<Partial<Record<keyof FormState | 'photos' | '_form', string>>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -113,6 +115,7 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
           price: form.isFree ? 0 : Number(form.price),
           condition: form.condition as 'new' | 'like_new' | 'good' | 'fair',
           category: form.category,
+          tags: form.tags,
           status: 'active',
           city: profile.city,
           state: profile.state,
@@ -272,6 +275,46 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
                 </SelectContent>
               </Select>
               {errors.condition && <p className="text-xs text-destructive">{errors.condition}</p>}
+            </div>
+          </div>
+
+          {/* Tags */}
+          <div className="flex flex-col gap-2">
+            <Label>
+              Tags
+              <span className="ml-1.5 text-xs font-normal text-muted-foreground">
+                optional · up to 5
+              </span>
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              {LISTING_TAGS.map((tag) => {
+                const isSelected = form.tags.includes(tag.slug)
+                const atLimit = form.tags.length >= 5 && !isSelected
+                return (
+                  <button
+                    key={tag.slug}
+                    type="button"
+                    disabled={atLimit}
+                    onClick={() =>
+                      handleField(
+                        'tags',
+                        isSelected
+                          ? form.tags.filter((t) => t !== tag.slug)
+                          : [...form.tags, tag.slug],
+                      )
+                    }
+                    className={`rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                      isSelected
+                        ? 'border-primary bg-primary text-primary-foreground'
+                        : atLimit
+                          ? 'cursor-not-allowed border-border bg-muted text-muted-foreground opacity-40'
+                          : 'border-border bg-background text-foreground hover:bg-muted'
+                    }`}
+                  >
+                    {tag.label}
+                  </button>
+                )
+              })}
             </div>
           </div>
 

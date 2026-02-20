@@ -73,6 +73,7 @@ export type Database = {
           state: string | null
           zip_code: string | null
           country: string | null
+          tags: string[]
           created_at: string
           updated_at: string
         }
@@ -90,6 +91,7 @@ export type Database = {
           state?: string | null
           zip_code?: string | null
           country?: string | null
+          tags?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -107,6 +109,7 @@ export type Database = {
           state?: string | null
           zip_code?: string | null
           country?: string | null
+          tags?: string[]
           created_at?: string
           updated_at?: string
         }

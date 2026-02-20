@@ -184,9 +184,17 @@
   body {
     @apply bg-background text-foreground;
   }
+  button {
+    cursor: pointer;
+  }
 }
 
-/* Cursor — !important to beat any Tailwind layer or unlayered reset */
-a[href], button, [role="button"], select, label {
-  cursor: pointer !important;
+/* Hide native scrollbar while keeping the element scrollable */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
