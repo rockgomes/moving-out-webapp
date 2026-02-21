@@ -1,7 +1,8 @@
 'use client'
 
 import { useTransition } from 'react'
-import { MessageCircle, Loader2 } from 'lucide-react'
+import Link from 'next/link'
+import { MessageCircle, Loader2, Pencil } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { startConversation } from './actions'
 
@@ -16,8 +17,11 @@ export function MessageSellerButton({ listingId, sellerId, isOwner }: MessageSel
 
   if (isOwner) {
     return (
-      <Button variant="outline" size="lg" className="w-full" disabled>
-        This is your listing
+      <Button asChild variant="outline" size="lg" className="w-full">
+        <Link href={`/sell/edit/${listingId}`}>
+          <Pencil className="mr-2 h-4 w-4" />
+          Edit Listing
+        </Link>
       </Button>
     )
   }

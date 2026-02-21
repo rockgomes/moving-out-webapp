@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
-import { ImagePlus, X, Loader2, Package } from 'lucide-react'
+import { ImagePlus, X, Loader2 } from 'lucide-react'
 import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -16,15 +16,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/currency'
 import { CATEGORIES, LISTING_CONDITIONS, LISTING_TAGS } from '@/lib/constants'
-import type { Profile } from '@/types'
+import type { Listing, ListingPhoto, Profile } from '@/types'
+import { revalidateAfterEdit } from './actions'
 
-interface CreateListingFormProps {
+interface EditListingFormProps {
+  listing: Listing
+  photos: ListingPhoto[]
   profile: Profile
-  movingSaleId: string | null
 }
 
 interface FormState {
@@ -33,32 +34,48 @@ interface FormState {
   price: string
   retail_price: string
   isFree: boolean
-  isNegotiable: boolean
   condition: string
   category: string
   tags: string[]
 }
 
+interface ExistingPhoto {
+  id: string
+  storage_path: string
+  display_order: number
+  url: string
+}
+
 const MAX_PHOTOS = 4
 
-export function CreateListingForm({ profile, movingSaleId }: CreateListingFormProps) {
+export function EditListingForm({ listing, photos: initialPhotos, profile }: EditListingFormProps) {
   const router = useRouter()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 
-  const [photos, setPhotos] = useState<File[]>([])
-  const [photoPreviews, setPhotoPreviews] = useState<string[]>([])
+  const [existingPhotos, setExistingPhotos] = useState<ExistingPhoto[]>(
+    initialPhotos
+      .slice()
+      .sort((a, b) => a.display_order - b.display_order)
+      .map((p) => ({
+        ...p,
+        url: `${supabaseUrl}/storage/v1/object/public/listing-photos/${p.storage_path}`,
+      })),
+  )
+  const [newPhotos, setNewPhotos] = useState<File[]>([])
+  const [newPreviews, setNewPreviews] = useState<string[]>([])
+
   const [form, setForm] = useState<FormState>({
-    title: '',
-    description: '',
-    price: '',
-    retail_price: '',
-    isFree: false,
-    isNegotiable: false,
-    condition: '',
-    category: '',
-    tags: [],
+    title: listing.title,
+    description: listing.description ?? '',
+    price: listing.price === 0 ? '' : String(listing.price),
+    retail_price: listing.retail_price != null ? String(listing.retail_price) : '',
+    isFree: listing.price === 0,
+    condition: listing.condition,
+    category: listing.category,
+    tags: listing.tags ?? [],
   })
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState | 'photos' | '_form', string>>>({})
+  const [errors, setErrors] = useState<Partial<Record<keyof FormState | '_form', string>>>({})
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   function handleField<K extends keyof FormState>(key: K, value: FormState[K]) {
@@ -66,22 +83,31 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
     setErrors((prev) => ({ ...prev, [key]: undefined }))
   }
 
+  async function removeExistingPhoto(photo: ExistingPhoto) {
+    const supabase = createClient()
+    await Promise.all([
+      supabase.storage.from('listing-photos').remove([photo.storage_path]),
+      supabase.from('listing_photos').delete().eq('id', photo.id),
+    ])
+    setExistingPhotos((prev) => prev.filter((p) => p.id !== photo.id))
+  }
+
   function handlePhotoSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
-    const remaining = MAX_PHOTOS - photos.length
+    const totalPhotos = existingPhotos.length + newPhotos.length
+    const remaining = MAX_PHOTOS - totalPhotos
     const toAdd = files.slice(0, remaining)
 
-    setPhotos((prev) => [...prev, ...toAdd])
+    setNewPhotos((prev) => [...prev, ...toAdd])
     const previews = toAdd.map((f) => URL.createObjectURL(f))
-    setPhotoPreviews((prev) => [...prev, ...previews])
-    // reset input so the same file can be re-selected
+    setNewPreviews((prev) => [...prev, ...previews])
     e.target.value = ''
   }
 
-  function removePhoto(index: number) {
-    URL.revokeObjectURL(photoPreviews[index])
-    setPhotos((prev) => prev.filter((_, i) => i !== index))
-    setPhotoPreviews((prev) => prev.filter((_, i) => i !== index))
+  function removeNewPhoto(index: number) {
+    URL.revokeObjectURL(newPreviews[index])
+    setNewPhotos((prev) => prev.filter((_, i) => i !== index))
+    setNewPreviews((prev) => prev.filter((_, i) => i !== index))
   }
 
   function validate(): boolean {
@@ -106,12 +132,10 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      // 1. Insert listing
-      const { data: listing, error: listingError } = await supabase
+      // 1. Update listing row
+      const { error: updateError } = await supabase
         .from('listings')
-        .insert({
-          seller_id: user.id,
-          moving_sale_id: movingSaleId,
+        .update({
           title: form.title.trim(),
           description: form.description.trim() || null,
           price: form.isFree ? 0 : Number(form.price),
@@ -119,39 +143,39 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
           condition: form.condition as 'new' | 'like_new' | 'good' | 'fair',
           category: form.category,
           tags: form.tags,
-          status: 'active',
-          city: profile.city,
-          state: profile.state,
-          zip_code: profile.zip_code,
         })
-        .select('id')
-        .single()
+        .eq('id', listing.id)
 
-      if (listingError || !listing) {
-        setErrors({ _form: 'Failed to create listing. Please try again.' })
+      if (updateError) {
+        setErrors({ _form: 'Failed to update listing. Please try again.' })
         setIsSubmitting(false)
         return
       }
 
-      // 2. Upload photos
-      for (let i = 0; i < photos.length; i++) {
-        const file = photos[i]
+      // 2. Upload new photos
+      const nextOrder = existingPhotos.length > 0
+        ? Math.max(...existingPhotos.map((p) => p.display_order)) + 1
+        : 0
+
+      for (let i = 0; i < newPhotos.length; i++) {
+        const file = newPhotos[i]
         const ext = file.name.split('.').pop() ?? 'jpg'
-        const path = `${user.id}/${listing.id}/${i}.${ext}`
+        const path = `${user.id}/${listing.id}/${Date.now()}-${i}.${ext}`
 
         const { error: uploadError } = await supabase.storage
           .from('listing-photos')
           .upload(path, file, { upsert: true })
 
-        if (uploadError) continue // skip failed uploads, don't block
+        if (uploadError) continue
 
         await supabase.from('listing_photos').insert({
           listing_id: listing.id,
           storage_path: path,
-          display_order: i,
+          display_order: nextOrder + i,
         })
       }
 
+      await revalidateAfterEdit(listing.id)
       router.push(`/listings/${listing.id}`)
     } catch {
       setErrors({ _form: 'Something went wrong. Please try again.' })
@@ -159,9 +183,8 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
     }
   }
 
+  const totalPhotos = existingPhotos.length + newPhotos.length
   const previewPrice = form.isFree ? '0' : form.price || '0'
-  const sellerInitials = profile.display_name
-    ?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   return (
     <form onSubmit={handleSubmit}>
@@ -174,16 +197,34 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
           <div className="flex flex-col gap-2">
             <Label>Photos <span className="text-muted-foreground">(up to {MAX_PHOTOS})</span></Label>
             <div className="flex gap-3 flex-wrap">
-              {/* Existing previews */}
-              {photoPreviews.map((src, i) => (
+              {/* Existing photos */}
+              {existingPhotos.map((photo, i) => (
                 <div
-                  key={src}
-                  className={`relative overflow-hidden rounded-xl border bg-muted ${i === 0 ? 'h-[140px] w-[180px]' : 'h-[88px] w-[88px]'}`}
+                  key={photo.id}
+                  className={`relative overflow-hidden rounded-xl border bg-muted ${i === 0 && newPhotos.length === 0 ? 'h-[140px] w-[180px]' : 'h-[88px] w-[88px]'}`}
                 >
-                  <Image src={src} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="180px" />
+                  <Image src={photo.url} alt={`Photo ${i + 1}`} fill className="object-cover" sizes="180px" />
                   <button
                     type="button"
-                    onClick={() => removePhoto(i)}
+                    onClick={() => removeExistingPhoto(photo)}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
+                    aria-label="Remove photo"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                </div>
+              ))}
+
+              {/* New photo previews */}
+              {newPreviews.map((src, i) => (
+                <div
+                  key={src}
+                  className="relative h-[88px] w-[88px] overflow-hidden rounded-xl border bg-muted"
+                >
+                  <Image src={src} alt={`New photo ${i + 1}`} fill className="object-cover" sizes="88px" />
+                  <button
+                    type="button"
+                    onClick={() => removeNewPhoto(i)}
                     className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80"
                     aria-label="Remove photo"
                   >
@@ -193,15 +234,15 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
               ))}
 
               {/* Add photo slot */}
-              {photos.length < MAX_PHOTOS && (
+              {totalPhotos < MAX_PHOTOS && (
                 <button
                   type="button"
                   onClick={() => fileInputRef.current?.click()}
-                  className={`flex items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/40 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 ${photos.length === 0 ? 'h-[140px] w-[180px]' : 'h-[88px] w-[88px]'}`}
+                  className={`flex items-center justify-center rounded-xl border-2 border-dashed border-muted-foreground/30 bg-muted/40 text-muted-foreground transition-colors hover:border-primary/50 hover:bg-primary/5 ${totalPhotos === 0 ? 'h-[140px] w-[180px]' : 'h-[88px] w-[88px]'}`}
                 >
                   <div className="flex flex-col items-center gap-1">
                     <ImagePlus className="h-6 w-6" />
-                    {photos.length === 0 && <span className="text-xs">Add Item Photo</span>}
+                    {totalPhotos === 0 && <span className="text-xs">Add Photo</span>}
                   </div>
                 </button>
               )}
@@ -246,10 +287,7 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
           <div className="grid grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <Label>Category</Label>
-              <Select
-                value={form.category}
-                onValueChange={(v) => handleField('category', v)}
-              >
+              <Select value={form.category} onValueChange={(v) => handleField('category', v)}>
                 <SelectTrigger aria-invalid={!!errors.category}>
                   <SelectValue placeholder="Select category" />
                 </SelectTrigger>
@@ -264,10 +302,7 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
 
             <div className="flex flex-col gap-1.5">
               <Label>Condition</Label>
-              <Select
-                value={form.condition}
-                onValueChange={(v) => handleField('condition', v)}
-              >
+              <Select value={form.condition} onValueChange={(v) => handleField('condition', v)}>
                 <SelectTrigger aria-invalid={!!errors.condition}>
                   <SelectValue placeholder="Select condition" />
                 </SelectTrigger>
@@ -329,11 +364,11 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
 
           {/* Footer actions (mobile) */}
           <div className="flex items-center justify-between gap-3 lg:hidden">
-            <Button type="button" variant="ghost" disabled={isSubmitting}>
-              Save as Draft
+            <Button type="button" variant="ghost" disabled={isSubmitting} onClick={() => router.back()}>
+              Cancel
             </Button>
             <Button type="submit" disabled={isSubmitting}>
-              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publishing…</> : 'Publish Listing'}
+              {isSubmitting ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : 'Save Changes'}
             </Button>
           </div>
         </div>
@@ -386,63 +421,39 @@ export function CreateListingForm({ profile, movingSaleId }: CreateListingFormPr
                 />
                 List as free
               </label>
-              <label className="flex cursor-pointer items-center gap-2 text-sm">
-                <Checkbox
-                  checked={form.isNegotiable}
-                  onCheckedChange={(v) => handleField('isNegotiable', !!v)}
-                />
-                Price is negotiable
-              </label>
             </div>
           </div>
 
-          {/* Live preview */}
-          <div className="rounded-xl border bg-white p-5">
-            <p className="mb-3 text-sm font-semibold">Preview</p>
-            <div className="overflow-hidden rounded-xl border shadow-sm">
-              {/* Photo */}
-              <div className="relative h-[130px] w-full bg-muted">
-                {photoPreviews[0] ? (
-                  <Image src={photoPreviews[0]} alt="Preview" fill className="object-cover" sizes="280px" />
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <Package className="h-8 w-8 text-muted-foreground/20" />
-                  </div>
-                )}
-              </div>
-              {/* Body */}
-              <div className="flex flex-col gap-2 p-3">
-                <div className="flex items-center justify-between">
-                  <p className="line-clamp-1 text-sm font-semibold text-foreground">
-                    {form.title || 'Your Item Title'}
-                  </p>
-                  <span className="text-sm font-bold text-primary">
-                    {formatPrice(Number(previewPrice), profile.country)}
-                  </span>
-                </div>
-                <p className="line-clamp-2 text-xs text-muted-foreground">
-                  {form.description || 'Your description will appear here…'}
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <Avatar className="h-5 w-5">
-                    <AvatarImage src={profile.avatar_url ?? undefined} />
-                    <AvatarFallback className="text-[9px]">{sellerInitials ?? 'U'}</AvatarFallback>
-                  </Avatar>
-                  <span className="text-[11px] text-muted-foreground">{profile.display_name ?? 'You'}</span>
-                </div>
-              </div>
+          {/* Price preview */}
+          <div className="rounded-xl border bg-muted/40 p-4">
+            <p className="mb-1 text-xs font-semibold text-muted-foreground uppercase tracking-wide">Price preview</p>
+            <div className="flex items-baseline gap-2 flex-wrap">
+              <span className="text-2xl font-bold text-primary">
+                {formatPrice(Number(previewPrice), profile.country)}
+              </span>
+              {form.retail_price && !form.isFree && (
+                <span className="text-sm text-muted-foreground">
+                  {formatPrice(Number(form.retail_price), profile.country)} retail
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Desktop submit */}
+          {/* Desktop actions */}
           <div className="hidden flex-col gap-2 lg:flex">
             <Button type="submit" size="lg" className="w-full" disabled={isSubmitting}>
               {isSubmitting
-                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Publishing…</>
-                : 'Publish Listing'}
+                ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</>
+                : 'Save Changes'}
             </Button>
-            <Button type="button" variant="ghost" className="w-full" disabled={isSubmitting}>
-              Save as Draft
+            <Button
+              type="button"
+              variant="ghost"
+              className="w-full"
+              disabled={isSubmitting}
+              onClick={() => router.back()}
+            >
+              Cancel
             </Button>
           </div>
         </div>

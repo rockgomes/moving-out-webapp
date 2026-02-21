@@ -66,6 +66,7 @@ export type Database = {
           title: string
           description: string | null
           price: number
+          retail_price: number | null
           condition: 'new' | 'like_new' | 'good' | 'fair'
           category: string
           status: 'active' | 'reserved' | 'sold'
@@ -84,6 +85,7 @@ export type Database = {
           title: string
           description?: string | null
           price: number
+          retail_price?: number | null
           condition?: 'new' | 'like_new' | 'good' | 'fair'
           category: string
           status?: 'active' | 'reserved' | 'sold'
@@ -102,6 +104,7 @@ export type Database = {
           title?: string
           description?: string | null
           price?: number
+          retail_price?: number | null
           condition?: 'new' | 'like_new' | 'good' | 'fair'
           category?: string
           status?: 'active' | 'reserved' | 'sold'
