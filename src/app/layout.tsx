@@ -6,6 +6,7 @@ import './globals.css'
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
 
 export const metadata: Metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? 'https://moving-out-webapp.vercel.app'),
   title: {
     default: 'MoveOutSale — Local Moving Sales Near You',
     template: '%s | MoveOutSale',
@@ -13,9 +14,13 @@ export const metadata: Metadata = {
   description:
     'Find great deals from people moving in and out of your neighborhood. Browse local moving sales and connect with sellers directly.',
   openGraph: {
-    title: 'MoveOutSale',
-    description: 'Local moving sales near you',
+    title: 'MoveOutSale — Local Moving Sales Near You',
+    description: 'Find great deals from people moving in and out of your neighborhood.',
     type: 'website',
+    siteName: 'MoveOutSale',
+  },
+  twitter: {
+    card: 'summary_large_image',
   },
 }
 
