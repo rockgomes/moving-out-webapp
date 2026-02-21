@@ -238,10 +238,10 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
             <ScrollablePills className="min-w-0 flex-1">
               <Link
                 href={tagUrl('')}
-                className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
                   !activeTag
-                    ? 'border-primary bg-primary text-primary-foreground'
-                    : 'border-border bg-background text-foreground hover:bg-muted'
+                    ? 'border border-primary bg-primary-subtle text-primary font-semibold'
+                    : 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
                 }`}
               >
                 All
@@ -250,10 +250,10 @@ export default async function SalePage({ params, searchParams }: SalePageProps) 
                 <Link
                   key={slug}
                   href={tagUrl(slug)}
-                  className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+                  className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
                     activeTag === slug
-                      ? 'border-primary bg-primary text-primary-foreground'
-                      : 'border-border bg-background text-foreground hover:bg-muted'
+                      ? 'border border-primary bg-primary-subtle text-primary font-semibold'
+                      : 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
                   }`}
                 >
                   {label}

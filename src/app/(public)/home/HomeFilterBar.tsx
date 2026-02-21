@@ -29,6 +29,10 @@ function buildTagUrl(tag: string, isFree: boolean, sort: string, category: strin
   return `/home${qs ? `?${qs}` : ''}`
 }
 
+const pillActive = 'border border-primary bg-primary-subtle text-primary font-semibold'
+const pillInactive = 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
+const pillBase = 'shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors'
+
 export function HomeFilterBar({ activeTag, availableTags, isFree, sort, category }: HomeFilterBarProps) {
   const router = useRouter()
   const noneActive = !activeTag && !isFree
@@ -39,11 +43,7 @@ export function HomeFilterBar({ activeTag, availableTags, isFree, sort, category
         {/* All Items — active when no tag and not free */}
         <Link
           href={buildTagUrl('', false, sort, category)}
-          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-            noneActive
-              ? 'border-primary bg-primary text-primary-foreground'
-              : 'border-border bg-white text-foreground hover:bg-muted'
-          }`}
+          className={`${pillBase} ${noneActive ? pillActive : pillInactive}`}
         >
           All Items
         </Link>
@@ -51,11 +51,7 @@ export function HomeFilterBar({ activeTag, availableTags, isFree, sort, category
         {/* Free Stuff */}
         <Link
           href={buildTagUrl('', true, sort, category)}
-          className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-            isFree
-              ? 'border-primary bg-primary text-primary-foreground'
-              : 'border-border bg-white text-foreground hover:bg-muted'
-          }`}
+          className={`${pillBase} ${isFree ? pillActive : pillInactive}`}
         >
           Free Stuff 🎁
         </Link>
@@ -65,11 +61,7 @@ export function HomeFilterBar({ activeTag, availableTags, isFree, sort, category
           <Link
             key={tag.slug}
             href={buildTagUrl(tag.slug, false, sort, category)}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
-              activeTag === tag.slug && !isFree
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border bg-white text-foreground hover:bg-muted'
-            }`}
+            className={`${pillBase} ${activeTag === tag.slug && !isFree ? pillActive : pillInactive}`}
           >
             {tag.label}
           </Link>
