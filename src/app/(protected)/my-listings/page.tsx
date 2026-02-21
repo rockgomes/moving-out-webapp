@@ -135,6 +135,9 @@ export default async function MyListingsPage() {
                   <Button asChild variant="outline" size="sm">
                     <Link href={`/listings/${listing.id}`}>View</Link>
                   </Button>
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/sell/edit/${listing.id}`}>Edit</Link>
+                  </Button>
                   <StatusButton listingId={listing.id} currentStatus={listing.status} />
                 </div>
               </div>
