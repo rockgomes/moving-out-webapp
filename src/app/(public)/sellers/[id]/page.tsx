@@ -181,10 +181,10 @@ export default async function SellerPage({ params, searchParams }: SellerPagePro
         <ScrollablePills className="mb-3">
           <Link
             href={categoryUrl('all')}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
               activeCategory === 'all'
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border bg-background text-foreground hover:bg-muted'
+                ? 'border border-primary bg-primary-subtle text-primary font-semibold'
+                : 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
             }`}
           >
             All Rooms <span className="opacity-60">({totalItems})</span>
@@ -193,10 +193,10 @@ export default async function SellerPage({ params, searchParams }: SellerPagePro
             <Link
               key={slug}
               href={categoryUrl(slug)}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
                 activeCategory === slug
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-foreground hover:bg-muted'
+                  ? 'border border-primary bg-primary-subtle text-primary font-semibold'
+                  : 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
               }`}
             >
               {label} <span className="opacity-60">({cnt})</span>
@@ -210,10 +210,10 @@ export default async function SellerPage({ params, searchParams }: SellerPagePro
         <ScrollablePills className="mb-6">
           <Link
             href={tagUrl('')}
-            className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+            className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
               !activeTag
-                ? 'border-primary bg-primary text-primary-foreground'
-                : 'border-border bg-background text-foreground hover:bg-muted'
+                ? 'border border-primary bg-primary-subtle text-primary font-semibold'
+                : 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
             }`}
           >
             All Items
@@ -222,10 +222,10 @@ export default async function SellerPage({ params, searchParams }: SellerPagePro
             <Link
               key={slug}
               href={tagUrl(slug)}
-              className={`shrink-0 rounded-full border px-3.5 py-1.5 text-xs font-medium transition-colors ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs transition-colors ${
                 activeTag === slug
-                  ? 'border-primary bg-primary text-primary-foreground'
-                  : 'border-border bg-background text-foreground hover:bg-muted'
+                  ? 'border border-primary bg-primary-subtle text-primary font-semibold'
+                  : 'bg-muted text-muted-foreground font-medium hover:bg-muted/80'
               }`}
             >
               {label}
