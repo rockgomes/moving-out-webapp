@@ -42,6 +42,8 @@
   --color-border-strong: var(--border-strong);
   --color-foreground-secondary: var(--foreground-secondary);
   --color-primary-subtle: var(--primary-subtle);
+  --color-error: var(--error);
+  --color-error-subtle: var(--error-subtle);
   /* Radius — exact design values */
   --radius-sm: 0.375rem;   /* 6px */
   --radius-md: 0.625rem;   /* 10px */

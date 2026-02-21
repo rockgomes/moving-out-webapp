@@ -4,12 +4,11 @@ import Link from 'next/link'
 import { MapPin, Clock, Share2, Flag, ChevronRight } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ListingCard } from '@/components/listings/ListingCard'
 import { MessageSellerButton } from './MessageSellerButton'
-import { CATEGORIES } from '@/lib/constants'
+import { CATEGORIES, LISTING_TAGS } from '@/lib/constants'
 import { formatPrice } from '@/lib/currency'
 import type { ListingWithSeller } from '@/types'
 
@@ -18,13 +17,6 @@ const CONDITION_LABELS: Record<string, string> = {
   like_new: 'Like New',
   good: 'Good',
   fair: 'Fair',
-}
-
-const CONDITION_VARIANTS: Record<string, 'default' | 'secondary' | 'outline'> = {
-  new: 'default',
-  like_new: 'default',
-  good: 'secondary',
-  fair: 'outline',
 }
 
 interface ListingPageProps {
@@ -176,17 +168,56 @@ export default async function ListingPage({ params }: ListingPageProps) {
             <h1 className="text-2xl font-bold leading-snug text-foreground">{listing.title}</h1>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          {/* Price row */}
+          <div className="flex items-baseline gap-2 flex-wrap">
             <span className="text-3xl font-bold text-primary">
               {formatPrice(Number(listing.price), listing.country)}
             </span>
-            <Badge variant={CONDITION_VARIANTS[listing.condition] ?? 'secondary'}>
-              {CONDITION_LABELS[listing.condition] ?? listing.condition}
-            </Badge>
-            <Badge variant="outline">{categoryLabel}</Badge>
-            {listing.status === 'reserved' && <Badge variant="secondary">Reserved</Badge>}
-            {listing.status === 'sold' && <Badge variant="outline">Sold</Badge>}
+            {listing.retail_price ? (
+              <span className="text-sm text-muted-foreground">
+                {formatPrice(Number(listing.retail_price), listing.country)} retail
+              </span>
+            ) : null}
           </div>
+
+          {/* Badges row */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {listing.status === 'active' && (
+              <span className="rounded-full bg-success-subtle px-2.5 py-1 text-xs font-semibold text-success">
+                Available
+              </span>
+            )}
+            {listing.status === 'reserved' && (
+              <span className="rounded-full bg-warning-subtle px-2.5 py-1 text-xs font-semibold text-warning">
+                Reserved
+              </span>
+            )}
+            {listing.status === 'sold' && (
+              <span className="rounded-full bg-error-subtle px-2.5 py-1 text-xs font-semibold text-destructive">
+                Sold
+              </span>
+            )}
+            <span className="rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">
+              {CONDITION_LABELS[listing.condition] ?? listing.condition}
+            </span>
+            <span className="rounded-full bg-primary-subtle px-2.5 py-1 text-xs font-semibold text-primary">
+              {categoryLabel}
+            </span>
+          </div>
+
+          {/* Tags row */}
+          {listing.tags && listing.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {listing.tags.map((tag) => (
+                <span
+                  key={tag}
+                  className="rounded-full bg-muted px-3 py-1 text-xs font-medium text-muted-foreground"
+                >
+                  {LISTING_TAGS.find((t) => t.slug === tag)?.label ?? tag}
+                </span>
+              ))}
+            </div>
+          )}
 
           {listing.description && (
             <div>
