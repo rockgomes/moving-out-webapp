@@ -33,9 +33,21 @@ export async function generateMetadata({ params }: SalePageProps): Promise<Metad
     .single()
 
   if (!sale) return { title: 'Moving Sale | MoveOutSale' }
+  const title = sale.title
+  const description = sale.description ?? `Browse all items from this moving sale.`
   return {
-    title: `${sale.title} | MoveOutSale`,
-    description: sale.description ?? `Browse all items from this moving sale.`,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
   }
 }
 
