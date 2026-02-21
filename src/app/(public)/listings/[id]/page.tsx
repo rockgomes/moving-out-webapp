@@ -90,6 +90,7 @@ export default async function ListingPage({ params }: ListingPageProps) {
     .filter(Boolean).join(', ')
 
   const timeAgo = (() => {
+    // eslint-disable-next-line react-hooks/purity
     const diff = Date.now() - new Date(listing.created_at).getTime()
     const days = Math.floor(diff / 86400000)
     if (days === 0) return 'Today'

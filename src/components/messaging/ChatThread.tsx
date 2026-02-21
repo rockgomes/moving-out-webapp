@@ -3,12 +3,34 @@
 import { useEffect, useRef, useState, useTransition } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { Send, Loader2, Package } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { createClient } from '@/lib/supabase/client'
 import { formatPrice } from '@/lib/currency'
 import type { Message } from '@/types'
+
+type ListingStatus = 'active' | 'reserved' | 'sold'
+
+const NEXT_STATUS: Record<ListingStatus, { label: string; next: ListingStatus }> = {
+  active:   { label: 'Mark Reserved', next: 'reserved' },
+  reserved: { label: 'Mark Sold',     next: 'sold' },
+  sold:     { label: 'Relist',        next: 'active' },
+}
+
+const STATUS_VARIANTS: Record<ListingStatus, 'default' | 'secondary' | 'outline'> = {
+  active:   'default',
+  reserved: 'secondary',
+  sold:     'outline',
+}
+
+const STATUS_LABELS: Record<ListingStatus, string> = {
+  active:   'Active',
+  reserved: 'Reserved',
+  sold:     'Sold',
+}
 
 interface OtherPerson {
   id: string
@@ -20,6 +42,7 @@ interface ListingSnippet {
   id: string
   title: string
   price: number
+  status: ListingStatus
   country: string | null
   photoUrl: string | null
 }
@@ -29,6 +52,7 @@ interface ChatThreadProps {
   currentUserId: string
   otherPerson: OtherPerson
   listing: ListingSnippet
+  isSeller: boolean
   initialMessages: Message[]
 }
 
@@ -37,13 +61,17 @@ export function ChatThread({
   currentUserId,
   otherPerson,
   listing,
+  isSeller,
   initialMessages,
 }: ChatThreadProps) {
   const [messages, setMessages] = useState<Message[]>(initialMessages)
   const [input, setInput] = useState('')
   const [isSending, startSending] = useTransition()
+  const [listingStatus, setListingStatus] = useState<ListingStatus>(listing.status)
+  const [isUpdating, startUpdate] = useTransition()
   const bottomRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+  const router = useRouter()
 
   // Scroll to bottom whenever messages change
   useEffect(() => {
@@ -121,6 +149,15 @@ export function ChatThread({
     }
   }
 
+  function handleStatusChange() {
+    const { next } = NEXT_STATUS[listingStatus]
+    startUpdate(async () => {
+      await supabase.from('listings').update({ status: next }).eq('id', listing.id)
+      setListingStatus(next)
+      router.refresh()
+    })
+  }
+
   const otherInitials = otherPerson.display_name?.split(' ').map((n) => n[0]).join('').toUpperCase().slice(0, 2)
 
   // Group messages by date
@@ -174,6 +211,23 @@ export function ChatThread({
           </div>
         </Link>
       </div>
+
+      {/* Seller status bar */}
+      {isSeller && (
+        <div className="flex items-center gap-2.5 border-b bg-muted/30 px-6 py-2">
+          <span className="text-xs text-muted-foreground">Item status:</span>
+          <Badge variant={STATUS_VARIANTS[listingStatus]}>{STATUS_LABELS[listingStatus]}</Badge>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-6 px-2 text-xs"
+            disabled={isUpdating}
+            onClick={handleStatusChange}
+          >
+            {isUpdating ? <Loader2 className="h-3 w-3 animate-spin" /> : NEXT_STATUS[listingStatus].label}
+          </Button>
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto px-6 py-4">
