@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { Heart, Package } from 'lucide-react'
+import { Heart } from 'lucide-react'
 import type { Metadata } from 'next'
 import { createServerClient } from '@/lib/supabase/server'
 import { ListingCard } from '@/components/listings/ListingCard'
