@@ -34,11 +34,38 @@ interface ListingPageProps {
 export async function generateMetadata({ params }: ListingPageProps): Promise<Metadata> {
   const { id } = await params
   const supabase = await createServerClient()
-  const { data } = await supabase.from('listings').select('title, description').eq('id', id).single()
+  const { data } = await supabase
+    .from('listings')
+    .select('title, description, listing_photos ( storage_path, display_order )')
+    .eq('id', id)
+    .single()
   if (!data) return { title: 'Listing not found | MoveOutSale' }
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const photos = (data.listing_photos as unknown as { storage_path: string; display_order: number }[] ?? [])
+    .slice().sort((a, b) => a.display_order - b.display_order)
+  const imageUrl = photos[0]
+    ? `${supabaseUrl}/storage/v1/object/public/listing-photos/${photos[0].storage_path}`
+    : undefined
+
+  const title = data.title
+  const description = data.description ?? `${data.title} for sale on MoveOutSale.`
+
   return {
-    title: `${data.title} | MoveOutSale`,
-    description: data.description ?? undefined,
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      type: 'website',
+      images: imageUrl ? [{ url: imageUrl, width: 1200, height: 630, alt: title }] : [],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: imageUrl ? [imageUrl] : [],
+    },
   }
 }
 
